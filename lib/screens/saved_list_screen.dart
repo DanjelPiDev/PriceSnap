@@ -136,7 +136,6 @@ class _SavedListScreenState extends State<SavedListScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Zeile 1: Name + Datum
                             Row(
                               children: [
                                 Expanded(
