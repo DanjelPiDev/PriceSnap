@@ -19,7 +19,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
-  // Services
+  // Services (Just Rewe for now)
   final ReweService _rewe = ReweService();
 
   late final AnimationController _ctrl;
@@ -29,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   final _prefsKey = 'savedReceipts';
 
   final List<String> _stores = ['Lidl', 'Aldi', 'Rewe', 'Edeka', 'Netto', 'Penny'];
-  String _selectedStore = 'Lidl';
+  String _selectedStore = 'Rewe';
   static const _storeApi = {
     'Lidl' : 'https://api.lidl.com/barcode',
     'Aldi' : 'https://api.aldi.com/barcode',

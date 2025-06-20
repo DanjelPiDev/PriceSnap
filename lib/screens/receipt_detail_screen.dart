@@ -33,11 +33,10 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(widget.name)),
 
-      // BODY mit SafeArea, bottomPadding in ListView
       body: SafeArea(
-        bottom: false,  // bottomNavigationBar kümmert sich um SafeArea
+        bottom: false,
         child: Padding(
-          padding: const EdgeInsets.only(bottom: 80), // genug Platz für die Leiste
+          padding: const EdgeInsets.only(bottom: 80),
           child: ListView.builder(
             itemCount: _items.length,
             itemBuilder: (ctx, i) {
@@ -61,7 +60,6 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
         ),
       ),
 
-      // summary in bottomNavigationBar mit SafeArea
       bottomNavigationBar: SafeArea(
         top: false,
         child: Container(
