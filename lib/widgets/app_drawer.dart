@@ -48,7 +48,7 @@ class AppDrawer extends StatelessWidget {
                 _buildTile(
                   context,
                   icon: Icons.shopping_cart_outlined,
-                  title: 'Current List',
+                  title: 'Shopping Cart',
                   onTap: () => Navigator.pop(context),
                 ),
                 _buildTile(

@@ -1,12 +1,14 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/item.dart';
+import '../services/rewe/rewe_product_match.dart';
 import '../widgets/app_drawer.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -16,17 +18,25 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+  // Services
+  final ReweService _rewe = ReweService();
+
+  late final AnimationController _ctrl;
+  late final Animation<double> _pulse;
+
   final List<Item> _items = [];
   final _prefsKey = 'savedReceipts';
 
-  final List<String> _stores = ['Lidl', 'Aldi', 'Rewe', 'Norma'];
+  final List<String> _stores = ['Lidl', 'Aldi', 'Rewe', 'Edeka', 'Netto', 'Penny'];
   String _selectedStore = 'Lidl';
   static const _storeApi = {
-    'Lidl' : 'https://api.lidl.example.com/product',
-    'Aldi' : 'https://api.aldi.example.com/item',
-    'Rewe' : 'https://api.rewe.example.com/lookup',
-    'Norma': 'https://api.norma.example.com/barcode',
+    'Lidl' : 'https://api.lidl.com/barcode',
+    'Aldi' : 'https://api.aldi.com/barcode',
+    'Rewe' : 'https://api.rewe.com/barcode',
+    'Edeka': 'https://api.edeka.com/barcode',
+    'Netto': 'https://api.netto.com/barcode',
+    'Penny': 'https://api.penny.com/barcode',
   };
 
   final _limitController = TextEditingController();
@@ -36,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _ctrl.dispose();
     _limitController.dispose();
     _barcodeScanner.close();
     super.dispose();
@@ -46,6 +57,12 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadReceiptList();
     _loadSelectedStore();
+
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+    _pulse = Tween(begin: 1.0, end: 1.1).animate(_ctrl);
   }
 
   double get _maxItemCost {
@@ -74,6 +91,9 @@ class _HomeScreenState extends State<HomeScreen> {
         .map((l) => l.text.trim())
         .toList();
 
+    print("_____________");
+    print(linesList);
+
     List<String> nameBuffer = [];
 
     for (var line in linesList) {
@@ -87,8 +107,6 @@ class _HomeScreenState extends State<HomeScreen> {
       var upMatch = unitPriceRegEx.firstMatch(line);
       if (upMatch != null) {
 
-        final unitAmount = double.parse(upMatch.group(1)!.replaceAll(',', '.'));
-        final unitLabel  = upMatch.group(2);
         final upRaw      = upMatch.group(3)!.replaceAll(',', '.');
         final unitPrice  = double.parse(upRaw);
 
@@ -115,6 +133,16 @@ class _HomeScreenState extends State<HomeScreen> {
             _items.add(Item(name: name, price: price));
           });
           nameBuffer.clear();
+
+          final match = await _rewe.matchProduct(name);
+
+          if (match != null) {
+            setState(() {
+              final idx = _items.length - 1;
+              _items[idx].name = match.name;
+              _items[idx].imageUrl = match.imageUrl;
+            });
+          }
         }
       }
       else if (RegExp(r'[A-Za-zÄÖÜäöüß]').hasMatch(line)) {
@@ -129,6 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final input = InputImage.fromFilePath(picked.path);
     final barcodes = await _barcodeScanner.processImage(input);
+
     if (barcodes.isEmpty) return;
 
     final code = barcodes.first.rawValue ?? '';
@@ -200,24 +229,64 @@ class _HomeScreenState extends State<HomeScreen> {
     final name = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Save Receipt'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Center(
+          child: const Text(
+            'Save Receipt',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(hintText: 'Enter Name'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+          decoration: InputDecoration(
+            labelText: 'Enter a name',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('Save'),
+        ),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+        actionsPadding: const EdgeInsets.all(16),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onPressed: () => Navigator.pop(context, controller.text.trim()),
+                    child: const Text('Save'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
     if (name == null || name.isEmpty) return;
+
     final entry = jsonEncode({
       'name': name,
       'items': _items.map((e) => e.toJson()).toList(),
@@ -229,18 +298,17 @@ class _HomeScreenState extends State<HomeScreen> {
     await prefs.setStringList(_prefsKey, list);
 
     ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Receipt Saved'))
+      const SnackBar(content: Text('Receipt Saved!')),
     );
   }
 
   Future<void> _loadReceiptList() async {
-    // placeholder für spätere Logik
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('PriceSnap - Scanner')),
+      appBar: AppBar(title: const Text('Shopping Cart')),
       drawer: const AppDrawer(),
 
       body: SafeArea(
@@ -265,22 +333,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                 ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: TextField(
-                controller: _limitController,
-                decoration: const InputDecoration(
-                  labelText: 'Spending limit (€)',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                onChanged: (val) {
-                  setState(() {
-                    _limit = double.tryParse(val.replaceAll(',', '.')) ?? 0.0;
-                  });
-                },
               ),
             ),
             Expanded(
@@ -321,6 +373,22 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: ListTile(
                         dense: true,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        leading: it.imageUrl != null
+                            ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: CachedNetworkImage(
+                            imageUrl: it.imageUrl!,
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => const SizedBox(
+                              width: 40, height: 40,
+                              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                            ),
+                            errorWidget: (_, __, ___) => const Icon(Icons.image_not_supported),
+                          ),
+                        )
+                            : const Icon(Icons.image, size: 40, color: Colors.grey),
                         title: GestureDetector(
                           onTap: () => _editName(i),
                           child: Text(it.name, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -367,7 +435,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: _items.isEmpty ? null : _saveReceipt,
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: TextField(
+                controller: _limitController,
+                decoration: const InputDecoration(
+                  labelText: 'Spending limit (€)',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                onChanged: (val) {
+                  setState(() {
+                    _limit = double.tryParse(val.replaceAll(',', '.')) ?? 0.0;
+                  });
+                },
               ),
             ),
           ],
@@ -396,10 +483,19 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
 
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: FloatingActionButton(
-        onPressed: pickAndRecognizeText,
-        child: const Icon(Icons.camera_alt),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
+      floatingActionButton: ScaleTransition(
+        scale: _pulse,
+        child: FloatingActionButton.extended(
+          backgroundColor: Colors.amberAccent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          onPressed: pickAndRecognizeText,
+          icon: const Icon(Icons.camera_alt),
+          label: const Text('Scan'),
+          tooltip: 'Scan product price sign',
+        ),
       ),
     );
   }

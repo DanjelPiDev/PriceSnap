@@ -170,12 +170,8 @@ class _SavedListScreenState extends State<SavedListScreen> {
                                   visualDensity: VisualDensity.compact,
                                 ),
                                 Chip(
-                                  label: Text('Sum: ${total.toStringAsFixed(2)}€'),
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                                Chip(
                                   label: Text(
-                                    'Limit: ${hasLimit ? limitNum.toDouble().toStringAsFixed(2) : '-'}€',
+                                    '${total.toStringAsFixed(2)}€ / ${hasLimit ? '${limitNum!.toStringAsFixed(2)}€' : '-'}',
                                   ),
                                   visualDensity: VisualDensity.compact,
                                 ),

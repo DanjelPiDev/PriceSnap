@@ -36,6 +36,10 @@ dependencies:
   camera: ^0.11.1
   http: ^1.4.0
   intl: any
+  string_similarity: ^2.0.0
+  cached_network_image: ^3.2.3
+  html: ^0.15.0
+  mobile_scanner: ^6.0.10
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
