@@ -63,7 +63,6 @@ class _SavedListScreenState extends State<SavedListScreen> {
               .toList();
           final isFav = _favorites.contains(name);
 
-          // Werte berechnen
           final total = items.fold<double>(0, (sum, it) => sum + it.price * it.quantity);
           final limitNum = rec['limit'] as num?;
           final hasLimit = limitNum != null && limitNum > 0;
