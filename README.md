@@ -19,4 +19,4 @@ A price scanner that extracts product names and prices straight from a photo of 
 ### Prerequisites
 
 - A device or emulator running Android  
-  (No clue if this works on iPhone – I don’t have one. Good luck 🍀)
+  (No clue if this works on iPhone, I don’t have one. Good luck 🍀)
