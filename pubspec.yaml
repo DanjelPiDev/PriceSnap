@@ -36,8 +36,8 @@ dependencies:
   camera: ^0.11.1
   http: ^1.4.0
   intl: any
-  string_similarity: ^2.0.0
-  cached_network_image: ^3.2.3
+  string_similarity: ^2.1.1
+  cached_network_image: ^3.4.1
   html: ^0.15.0
   mobile_scanner: ^6.0.10
 

@@ -14,7 +14,7 @@ class AppDrawer extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
+                colors: [Color(0xFFD2AA19), Color(0xFFE1DE5F)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),

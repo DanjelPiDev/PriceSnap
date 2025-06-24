@@ -9,24 +9,22 @@ class ProductMatch {
   final String name;
   final String? imageUrl;
   final double similarity;
+  final double price;
 
   ProductMatch({
     required this.name,
     this.imageUrl,
     required this.similarity,
+    required this.price,
   });
 }
 
-/// Service to search and match products on REWE by name using fuzzy matching
-/// and token-based substring search to handle OCR errors.
 class ReweService {
   // URL template for the REWE search page.
   static const String _searchUrlTemplate =
       'https://www.rewe.de/suche/produkte?search={query}';
 
-  /// Fetches the REWE search page, extracts product names and images
-  /// by parsing the HTML, and returns a list of Map{name,imageUrl}.
-  Future<List<Map<String, String?>>> _fetchProductsFromHtml(
+  Future<List<Map<String, dynamic>>> _fetchProductsFromHtml(
       String recognizedName) async {
     final query = Uri.encodeComponent(recognizedName);
     final url = _searchUrlTemplate.replaceFirst('{query}', query);
@@ -38,29 +36,33 @@ class ReweService {
     final mainBlock = doc.querySelector('main#spr-search');
     if (mainBlock == null) return [];
 
-    // Find REWE product tiles within main block
     final productElements =
     mainBlock.querySelectorAll('article[data-product-tile]');
 
-    final products = <Map<String, String?>>[];
+    final products = <Map<String, dynamic>>[];
     for (var el in productElements) {
       final nameEl = el.querySelector('.spr-product-information__title-link');
       final imgEl = el.querySelector('.spr-product-image img');
+      final priceEl = el.querySelector('.spr-price__value');
+
       final name = nameEl?.text.trim();
       String? img;
       if (imgEl != null) {
         img = imgEl.attributes['src'] ?? imgEl.attributes['data-src'];
       }
+      double? price;
+      if (priceEl != null) {
+        final priceText = priceEl.text.trim().replaceAll(',', '.').replaceAll(RegExp(r'[^\d.]'), '');
+        price = double.tryParse(priceText);
+      }
+
       if (name != null && name.isNotEmpty) {
-        products.add({'name': name, 'imageUrl': img});
+        products.add({'name': name, 'imageUrl': img, 'price': price});
       }
     }
     return products;
   }
 
-  /// Searches REWE for [recognizedName], applies fuzzy similarity and
-  /// token-substring matching to handle OCR noise, and returns the best
-  /// match if similarity >= [threshold].
   Future<ProductMatch?> matchProduct(
       String recognizedName, {
         double threshold = 0.7,
@@ -77,6 +79,7 @@ class ReweService {
     String? bestName;
     String? bestImg;
     double bestScore = 0.0;
+    double bestPrice = 0.0;
 
     for (var p in scraped) {
       final prodName = p['name']!;
@@ -92,6 +95,7 @@ class ReweService {
         bestScore = combined;
         bestName = prodName;
         bestImg = p['imageUrl'];
+        bestPrice = p['price'];
       }
     }
 
@@ -100,6 +104,7 @@ class ReweService {
         name: bestName,
         imageUrl: bestImg,
         similarity: bestScore,
+        price: bestPrice,
       );
     }
     return null;

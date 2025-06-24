@@ -10,6 +10,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/item.dart';
 import '../services/rewe/rewe_product_match.dart';
 import '../widgets/app_drawer.dart';
+import 'live_scan_screen.dart';
+
+enum ItemFilter { spendingLimit, mostExpensive, cheapest }
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,9 +22,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
-  // Services (Just Rewe for now)
   final ReweService _rewe = ReweService();
 
+  // Animation (For the Scan button)
   late final AnimationController _ctrl;
   late final Animation<double> _pulse;
 
@@ -30,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   final List<String> _stores = ['Lidl', 'Aldi', 'Rewe', 'Edeka', 'Netto', 'Penny'];
   String _selectedStore = 'Rewe';
+  // Just placeholders...
   static const _storeApi = {
     'Lidl' : 'https://api.lidl.com/barcode',
     'Aldi' : 'https://api.aldi.com/barcode',
@@ -43,6 +47,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   double _limit = 0.0;
 
   final _barcodeScanner = GoogleMlKit.vision.barcodeScanner();
+
+  bool _pendingShowLimitDialog = false;
+  Set<ItemFilter> _activeFilters = {};
+  double? _filterSpendingLimit;
+
+  String filterName(ItemFilter f) {
+    switch (f) {
+      case ItemFilter.spendingLimit: return 'Spending Limit';
+      case ItemFilter.mostExpensive: return 'Most Expensive';
+      case ItemFilter.cheapest: return 'Cheapest';
+    }
+  }
 
   @override
   void dispose() {
@@ -72,6 +88,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         .reduce((a, b) => a > b ? a : b);
   }
 
+  void _openLiveScan() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => LiveScanScreen(
+          onItemConfirmed: (Item item) {
+            setState(() {
+              _items.add(item);
+            });
+          },
+        ),
+      ),
+    );
+  }
+
   Future<void> pickAndRecognizeText() async {
     final pickedImage = await ImagePicker().pickImage(
       source: ImageSource.camera,
@@ -83,7 +113,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final recognized = await textRecognizer.processImage(inputImage);
     await textRecognizer.close();
 
-    final priceLineRegEx = RegExp(r'^€?\s*\d+(?:[.,]\d{2})?$');
+    final priceLineRegEx = RegExp(r'^\d+[.,]\d{2}$');
+    final possiblePrices = recognized.blocks
+        .expand((block) => block.lines)
+        .map((line) => line.text.trim())
+        .where((text) => priceLineRegEx.hasMatch(text))
+        .toList();
     final weightRegEx   = RegExp(r'^\d+[.,]?\d*\s*(g|kg|ml|l)\b', caseSensitive: false);
 
     final linesList = recognized.blocks
@@ -118,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
       if (weightOnlyRegEx.hasMatch(line)) continue;
 
-      if (priceLineRegEx.hasMatch(line)) {
+      if (possiblePrices.isNotEmpty) {
         var raw = line.replaceAll(RegExp(r'[^0-9.,]'), '');
 
         if (!raw.contains(RegExp(r'[.,]')) && raw.length > 2) {
@@ -307,6 +342,66 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    if (_pendingShowLimitDialog) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final ctrl = TextEditingController(
+          text: _filterSpendingLimit?.toString() ?? '',
+        );
+        final limit = await showDialog<double>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Set Spending Limit'),
+            content: TextField(
+              controller: ctrl,
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(labelText: 'Limit (€)'),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(
+                    context,
+                    double.tryParse(ctrl.text.replaceAll(',', '.')),
+                  );
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        setState(() {
+          _pendingShowLimitDialog = false;
+          if (limit != null) {
+            _activeFilters.add(ItemFilter.spendingLimit);
+            _filterSpendingLimit = limit;
+          } else {
+            _activeFilters.remove(ItemFilter.spendingLimit);
+            _filterSpendingLimit = null;
+          }
+        });
+      });
+    }
+
+    List<Item> _filteredItems = _items.where((it) {
+      // Spending Limit Filter
+      if (_activeFilters.contains(ItemFilter.spendingLimit) && _filterSpendingLimit != null) {
+        if (it.price * it.quantity > _filterSpendingLimit!) return false;
+      }
+      // Most Expensive
+      if (_activeFilters.contains(ItemFilter.mostExpensive)) {
+        final max = _items.map((x) => x.price * x.quantity).fold<double>(0, (a, b) => a > b ? a : b);
+        if (it.price * it.quantity < max) return false;
+      }
+      // Cheapest
+      if (_activeFilters.contains(ItemFilter.cheapest)) {
+        final min = _items.map((x) => x.price * x.quantity).fold<double>(double.infinity, (a, b) => a < b ? a : b);
+        if (it.price * it.quantity > min) return false;
+      }
+
+      return true;
+    }).toList();
+
     return Scaffold(
       appBar: AppBar(title: const Text('Shopping Cart')),
       drawer: const AppDrawer(),
@@ -320,17 +415,69 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 children: [
                   const Text('Store:'),
                   const SizedBox(width: 12),
-                  DropdownButton<String>(
-                    value: _selectedStore,
-                    items: _stores.map((s) => DropdownMenuItem(
-                      value: s,
-                      child: Text(s),
-                    )).toList(),
-                    onChanged: (s) {
-                      if (s == null) return;
-                      setState(() => _selectedStore = s);
-                      _saveSelectedStore(s);
-                    },
+                  Expanded(
+                    child: DropdownButton<String>(
+                      value: _selectedStore,
+                      items: _stores.map((s) => DropdownMenuItem(
+                        value: s,
+                        child: Text(s),
+                      )).toList(),
+                      onChanged: (s) {
+                        if (s == null) return;
+                        setState(() => _selectedStore = s);
+                        _saveSelectedStore(s);
+                      },
+                    ),
+                  ),
+                  DropdownButtonHideUnderline(
+                    child: DropdownButton(
+                      icon: const Icon(Icons.filter_list),
+                      hint: const Text('Filter'),
+                      items: [
+                        DropdownMenuItem(
+                          enabled: false,
+                          child: StatefulBuilder(
+                            builder: (context, setStateDropdown) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: ItemFilter.values.map((filter) {
+                                  final selected = _activeFilters.contains(filter);
+                                  return Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Checkbox(
+                                        value: selected,
+                                        onChanged: (bool? value) async {
+                                          Navigator.pop(context); // Menü schließen
+
+                                          if (filter == ItemFilter.spendingLimit && (value ?? false)) {
+                                            setState(() {
+                                              _pendingShowLimitDialog = true;
+                                            });
+                                          } else {
+                                            setState(() {
+                                              if (value == true) {
+                                                _activeFilters.add(filter);
+                                              } else {
+                                                _activeFilters.remove(filter);
+                                                if (filter == ItemFilter.spendingLimit) _filterSpendingLimit = null;
+                                              }
+                                            });
+                                          }
+                                        },
+                                      ),
+                                      Text(filterName(filter)),
+                                    ],
+                                  );
+                                }).toList(),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                      onChanged: (_) {},
+                    ),
                   ),
                 ],
               ),
@@ -342,9 +489,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               )
                   : ListView.builder(
                 padding: const EdgeInsets.fromLTRB(8, 8, 8, 150),
-                itemCount: _items.length,
+                itemCount: _filteredItems.length,
                 itemBuilder: (_, i) {
-                  final it = _items[i];
+                  final it = _filteredItems[i];
                   final cost = it.price * it.quantity;
                   final over = _limit > 0 && _total > _limit;
                   final isMostExpensive = cost == _maxItemCost;
@@ -441,22 +588,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: TextField(
-                controller: _limitController,
-                decoration: const InputDecoration(
-                  labelText: 'Spending limit (€)',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                onChanged: (val) {
-                  setState(() {
-                    _limit = double.tryParse(val.replaceAll(',', '.')) ?? 0.0;
-                  });
-                },
-              ),
-            ),
           ],
         ),
       ),
@@ -491,7 +622,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          onPressed: pickAndRecognizeText,
+          onPressed: pickAndRecognizeText,//_openLiveScan,
           icon: const Icon(Icons.camera_alt),
           label: const Text('Scan'),
           tooltip: 'Scan product price sign',
