@@ -18,9 +18,9 @@ class _SavedProductsScreenState extends State<SavedProductsScreen> {
   List<Product> _products = [];
   bool _loading = true;
 
-  final List<String> filterStores = ['Alle', 'REWE', 'Lidl', 'Aldi', 'Edeka', 'Netto', 'Penny'];
+  final List<String> filterStores = ['None', 'REWE', 'Lidl', 'Aldi', 'Edeka', 'Netto', 'Penny'];
   final List<String> itemStores = ['REWE', 'Lidl', 'Aldi', 'Edeka', 'Netto', 'Penny'];
-  String _selectedFilterStore = 'Alle';
+  String _selectedFilterStore = 'None';
 
   @override
   void initState() {
@@ -126,26 +126,44 @@ class _SavedProductsScreenState extends State<SavedProductsScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
-      builder: (ctx) =>
-          SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.photo_camera),
-                  title: const Text("Take a Photo"),
-                  onTap: () => Navigator.pop(ctx, "camera"),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.photo_library),
-                  title: const Text("Select from Gallery"),
-                  onTap: () => Navigator.pop(ctx, "gallery"),
-                ),
-              ],
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text("Take a Photo"),
+              onTap: () => Navigator.pop(ctx, "camera"),
             ),
-          ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text("Select from Gallery"),
+              onTap: () => Navigator.pop(ctx, "gallery"),
+            ),
+          ],
+        ),
+      ),
     );
+
+    if (result == null) return;
+
+    final XFile? image = await picker.pickImage(
+      source: result == "camera" ? ImageSource.camera : ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
+    );
+    if (image == null) return;
+
+    setState(() {
+      _products[index].imageUrl = image.path;
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    final updated = _products.map((e) => jsonEncode(e.toJson())).toList();
+    await prefs.setStringList('productTemplates', updated);
   }
+
 
   @override
   Widget build(BuildContext context) {

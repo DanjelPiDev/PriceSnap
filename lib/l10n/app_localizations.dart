@@ -302,6 +302,18 @@ abstract class AppLocalizations {
   /// **'Select from Gallery'**
   String get selectPhotoFromGallery;
 
+  /// No description provided for @alreadyExists.
+  ///
+  /// In en, this message translates to:
+  /// **'Product already exists!'**
+  String get alreadyExists;
+
+  /// No description provided for @alreadyExistsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'The product already exists in your templates.'**
+  String get alreadyExistsDescription;
+
   /// No description provided for @remove.
   ///
   /// In en, this message translates to:

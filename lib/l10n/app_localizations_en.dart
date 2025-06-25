@@ -114,6 +114,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectPhotoFromGallery => 'Select from Gallery';
 
   @override
+  String get alreadyExists => 'Product already exists!';
+
+  @override
+  String get alreadyExistsDescription =>
+      'The product already exists in your templates.';
+
+  @override
   String get remove => 'Remove';
 
   @override

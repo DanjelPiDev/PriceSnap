@@ -37,6 +37,8 @@
   "editProductOk": "OK",
   "takePhoto": "Foto aufnehmen",
   "selectPhotoFromGallery": "Foto aus Galerie auswählen",
+  "alreadyExists": "Produkt existiert bereits!",
+  "alreadyExistsDescription": "Das Produkt existiert bereits in deinen Vorlagen.",
 
   "remove": "Entfernen",
   "saveProduct": "Produkt speichern",

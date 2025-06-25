@@ -181,10 +181,18 @@ class _ShoppingCartState extends State<ShoppingCart>
     if (_products[i].quantity > 1) _products[i].quantity--;
   });
 
-  void _editItem(int i) async {
-    final nameController = TextEditingController(text: _products[i].name);
-    final priceController = TextEditingController(text: _products[i].price.toStringAsFixed(2));
-    String selectedStore = _products[i].store;
+  void _editProduct(String productId) async {
+    final index = _products.indexWhere((p) => p.id == productId);
+    if (index == -1) return;
+
+    final current = _products[index];
+
+    final nameController = TextEditingController(text: current.name);
+    final priceController = TextEditingController(text: current.price.toStringAsFixed(2));
+    String selectedStore = current.store;
+    if (!_stores.where((s) => s != 'None').contains(selectedStore)) {
+      selectedStore = _stores.firstWhere((s) => s != 'None');
+    }
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
@@ -208,7 +216,7 @@ class _ShoppingCartState extends State<ShoppingCart>
             DropdownButtonFormField<String>(
               value: selectedStore,
               decoration: InputDecoration(labelText: AppLocalizations.of(context)!.editProductStore),
-              items: _stores.where((s) => s != 'Alle').map((s) =>
+              items: _stores.where((s) => s != 'None').map((s) =>
                   DropdownMenuItem(value: s, child: Text(s))).toList(),
               onChanged: (s) => selectedStore = s!,
             ),
@@ -223,8 +231,7 @@ class _ShoppingCartState extends State<ShoppingCart>
             onPressed: () {
               Navigator.pop(context, {
                 'name': nameController.text.trim(),
-                'price': double.tryParse(
-                    priceController.text.replaceAll(',', '.').trim()) ?? _products[i].price,
+                'price': double.tryParse(priceController.text.replaceAll(',', '.').trim()) ?? current.price,
                 'store': selectedStore,
               });
             },
@@ -236,9 +243,9 @@ class _ShoppingCartState extends State<ShoppingCart>
 
     if (result != null && result['name'].isNotEmpty) {
       setState(() {
-        _products[i].name = result['name'];
-        _products[i].price = result['price'];
-        _products[i].store = result['store'];
+        _products[index].name = result['name'];
+        _products[index].price = result['price'];
+        _products[index].store = result['store'];
       });
       final prefs = await SharedPreferences.getInstance();
       final updated = _products.map((e) => jsonEncode(e.toJson())).toList();
@@ -354,25 +361,104 @@ class _ShoppingCartState extends State<ShoppingCart>
       return;
     }
 
-    Product? selected;
+    // Wichtig: Im Dialog State halten!
     await showDialog(
       context: context,
       builder: (_) {
+        // Brauchen ein StatefulBuilder, um innerhalb des Dialogs die UI zu refreshen!
         return AlertDialog(
           title: Text(AppLocalizations.of(context)!.selectSavedProduct),
           content: SizedBox(
-            width: 300,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: templates.length,
-              itemBuilder: (ctx, i) {
-                final item = Product.fromJson(jsonDecode(templates[i]));
-                return ListTile(
-                  title: Text(item.name),
-                  subtitle: Text('${item.price.toStringAsFixed(2)} € • ${item.store}'),
-                  onTap: () {
-                    selected = item;
-                    Navigator.of(ctx).pop();
+            width: 350,
+            height: 400,
+            child: StatefulBuilder(
+              builder: (dialogCtx, setDialogState) {
+                return ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: templates.length,
+                  itemBuilder: (ctx, i) {
+                    final item = Product.fromJson(jsonDecode(templates[i]));
+
+                    // Prüfen: Ist schon im Warenkorb?
+                    final cartIndex = _products.indexWhere((p) =>
+                    p.name == item.name &&
+                        p.price == item.price &&
+                        p.store == item.store);
+
+                    final alreadyInCart = cartIndex != -1;
+                    final quantity = alreadyInCart ? _products[cartIndex].quantity : 0;
+
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (alreadyInCart) {
+                            _products[cartIndex].quantity++;
+                          } else {
+                            _products.add(item.copyWith());
+                          }
+                        });
+                        // Optional: Feedback-Animation
+                        setDialogState(() {}); // Damit Quantity im Dialog sichtbar aktualisiert
+                      },
+                      child: Card(
+                        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ListTile(
+                          leading: item.imageUrl != null && item.imageUrl!.isNotEmpty
+                              ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.file(
+                              File(item.imageUrl!),
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Icon(Icons.image, color: Colors.grey),
+                            ),
+                          )
+                              : Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.image, size: 24, color: Colors.grey),
+                          ),
+                          title: Text(
+                            item.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text('${item.price.toStringAsFixed(2)}€ • ${item.store}'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.add_circle_outline, color: Colors.blueAccent),
+                              if (quantity > 0)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 8.0),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      'x$quantity',
+                                      style: const TextStyle(
+                                        color: Colors.blueAccent,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
                   },
                 );
               },
@@ -381,19 +467,15 @@ class _ShoppingCartState extends State<ShoppingCart>
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(context)!.editProductCancel),
             ),
           ],
         );
       },
     );
-
-    if (selected != null) {
-      setState(() {
-        _products.add(selected!.copyWith());
-      });
-    }
   }
+
+
 
   Future<void> _loadReceiptList() async {}
 
@@ -526,12 +608,42 @@ class _ShoppingCartState extends State<ShoppingCart>
   Future<void> _saveItemTemplate(Product item) async {
     final prefs = await SharedPreferences.getInstance();
     final List<String> templates = prefs.getStringList('productTemplates') ?? [];
-    final itemJson = jsonEncode(item.toJson());
-    if (!templates.contains(itemJson)) {
-      templates.add(itemJson);
-      await prefs.setStringList('productTemplates', templates);
+
+    final List<Product> savedProducts = templates
+        .map((e) => Product.fromJson(jsonDecode(e)))
+        .toList();
+
+    final bool exists = savedProducts.any((p) => p.id == item.id);
+
+    if (exists) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: Text(AppLocalizations.of(context)!.alreadyExists),
+            content: Text(AppLocalizations.of(context)!.alreadyExistsDescription),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
+    templates.add(jsonEncode(item.toJson()));
+    await prefs.setStringList('productTemplates', templates);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Produkt gespeichert!")),
+      );
     }
   }
+
 
   void _openCameraOCRScreen() {
     Navigator.of(context).push(
@@ -837,7 +949,7 @@ class _ShoppingCartState extends State<ShoppingCart>
                                 ),
                               ),
                               title: GestureDetector(
-                                onTap: () => _editItem(i),
+                                onTap: () => _editProduct(it.id),
                                 child: Text(
                                   it.name,
                                   style: const TextStyle(
@@ -923,7 +1035,7 @@ class _ShoppingCartState extends State<ShoppingCart>
 
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 20.0),
+        padding: const EdgeInsets.only(bottom: 40.0),
         child: ScaleTransition(
           scale: _pulse,
           child: Column(
