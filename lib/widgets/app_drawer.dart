@@ -1,9 +1,24 @@
 import 'package:flutter/material.dart';
-import '../screens/saved_item_screen.dart';
+import 'package:price_snap/screens/settings_screen.dart';
+import '../l10n/app_localizations.dart';
+import '../screens/saved_products_screen.dart';
 import '../screens/saved_receipt_screen.dart';
 
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key});
+  final ThemeMode themeMode;
+  final void Function(ThemeMode) onThemeChanged;
+  final Locale locale;
+  final void Function(Locale) onLocaleChanged;
+  final VoidCallback? onOpenSettings;
+
+  AppDrawer({
+    super.key,
+    required this.themeMode,
+    required this.onThemeChanged,
+    required this.locale,
+    required this.onLocaleChanged,
+    this.onOpenSettings,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -49,13 +64,13 @@ class AppDrawer extends StatelessWidget {
                 _buildTile(
                   context,
                   icon: Icons.shopping_cart_outlined,
-                  title: 'Shopping Cart',
+                  title: AppLocalizations.of(context)!.drawerShoppingCart,
                   onTap: () => Navigator.pop(context),
                 ),
                 _buildTile(
                   context,
                   icon: Icons.receipt_long,
-                  title: 'Shopping List',
+                  title: AppLocalizations.of(context)!.drawerShoppingList,
                   onTap: () => Navigator.pop(context),
                 ),
                 const Divider(height: 32, indent: 16, endIndent: 16),
@@ -67,7 +82,7 @@ class AppDrawer extends StatelessWidget {
                 _buildTile(
                   context,
                   icon: Icons.receipt_sharp,
-                  title: 'Saved Receipts',
+                  title: AppLocalizations.of(context)!.drawerSavedReceipts,
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(
@@ -79,34 +94,40 @@ class AppDrawer extends StatelessWidget {
                 _buildTile(
                   context,
                   icon: Icons.ad_units,
-                  title: 'Saved Items',
+                  title: AppLocalizations.of(context)!.drawerSavedProducts,
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const SavedItemsScreen()),
+                      MaterialPageRoute(builder: (_) => const SavedProductsScreen()),
                     );
                   }
                 ),
                 const Divider(height: 32, indent: 16, endIndent: 16),
 
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Text('Settings',
-                      style: Theme.of(context).textTheme.titleSmall),
-                ),
                 _buildTile(
                   context,
                   icon: Icons.settings,
-                  title: 'Settings',
-                  onTap: () {
-                    // TODO: Settings screen
+                  title: AppLocalizations.of(context)!.drawerSettings,
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await Future.delayed(const Duration(milliseconds: 250));
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => SettingsScreen(
+                          themeMode: themeMode,
+                          onThemeChanged: onThemeChanged,
+                          locale: locale,
+                          onLocaleChanged: onLocaleChanged,
+                        ),
+                      ),
+                    );
                   },
                 ),
                 _buildTile(
                   context,
                   icon: Icons.info_outline,
-                  title: 'About PriceSnap',
+                  title: AppLocalizations.of(context)!.drawerAbout,
                   onTap: () {
                     // TODO: About screen
                   },

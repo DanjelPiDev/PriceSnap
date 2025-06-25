@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:price_snap/screens/receipt_detail_screen.dart';
-import '../models/item.dart';
+import '../models/product.dart';
 import '../models/receipt.dart';
 
 class SavedListScreen extends StatefulWidget {

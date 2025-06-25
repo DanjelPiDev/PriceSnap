@@ -8,26 +8,40 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../models/item.dart';
+import '../l10n/app_localizations.dart';
+import '../models/product.dart';
 import '../models/receipt.dart';
 import '../widgets/app_drawer.dart';
 import 'camera_ocr_screen.dart';
 
-enum ItemFilter { spendingLimit, mostExpensive, cheapest }
+enum ProductFilter { spendingLimit, mostExpensive, cheapest }
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class ShoppingCart extends StatefulWidget {
+  final ThemeMode themeMode;
+  final void Function(ThemeMode) onThemeChanged;
+  final Locale locale;
+  final void Function(Locale) onLocaleChanged;
+  final VoidCallback? onOpenSettings;
+
+  const ShoppingCart({
+    super.key,
+    required this.themeMode,
+    required this.onThemeChanged,
+    required this.locale,
+    required this.onLocaleChanged,
+    this.onOpenSettings,
+  });
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<ShoppingCart> createState() => _ShoppingCartState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
+class _ShoppingCartState extends State<ShoppingCart>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
   late final Animation<double> _pulse;
 
-  final List<Item> _items = [];
+  final List<Product> _products = [];
   final _prefsKey = 'savedReceipts';
 
   final List<String> _stores = [
@@ -56,17 +70,17 @@ class _HomeScreenState extends State<HomeScreen>
   final _barcodeScanner = GoogleMlKit.vision.barcodeScanner();
 
   bool _pendingShowLimitDialog = false;
-  Set<ItemFilter> _activeFilters = {};
+  Set<ProductFilter> _activeFilters = {};
   double? _filterSpendingLimit;
 
-  String filterName(ItemFilter f) {
+  String filterName(ProductFilter f) {
     switch (f) {
-      case ItemFilter.spendingLimit:
-        return 'Spending Limit';
-      case ItemFilter.mostExpensive:
-        return 'Most Expensive';
-      case ItemFilter.cheapest:
-        return 'Cheapest';
+      case ProductFilter.spendingLimit:
+        return AppLocalizations.of(context)!.filterSpendingLimit;
+      case ProductFilter.mostExpensive:
+        return AppLocalizations.of(context)!.mostExpensive;
+      case ProductFilter.cheapest:
+        return AppLocalizations.of(context)!.cheapest;
     }
   }
 
@@ -92,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _clearList() {
-    setState(() => _items.clear());
+    setState(() => _products.clear());
   }
 
   Future<void> _pickImageForItem(int index) async {
@@ -108,12 +122,12 @@ class _HomeScreenState extends State<HomeScreen>
           children: [
             ListTile(
               leading: const Icon(Icons.photo_camera),
-              title: const Text("Take a Photo"),
+              title: Text(AppLocalizations.of(context)!.takePhoto),
               onTap: () => Navigator.pop(ctx, "camera"),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text("Select from Gallery"),
+              title: Text(AppLocalizations.of(context)!.selectPhotoFromGallery),
               onTap: () => Navigator.pop(ctx, "gallery"),
             ),
           ],
@@ -132,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen>
     if (image == null) return;
 
     setState(() {
-      _items[index].imageUrl = image.path;
+      _products[index].imageUrl = image.path;
     });
   }
 
@@ -152,48 +166,48 @@ class _HomeScreenState extends State<HomeScreen>
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
         final name = data['productName'] ?? data['name'] ?? code;
-        setState(() => _items[index].name = name);
+        setState(() => _products[index].name = name);
       } else {
-        setState(() => _items[index].name = code);
+        setState(() => _products[index].name = code);
       }
     } catch (e) {
-      setState(() => _items[index].name = code);
+      setState(() => _products[index].name = code);
     }
   }
 
-  void _incrementQuantity(int i) => setState(() => _items[i].quantity++);
+  void _incrementQuantity(int i) => setState(() => _products[i].quantity++);
 
   void _decrementQuantity(int i) => setState(() {
-    if (_items[i].quantity > 1) _items[i].quantity--;
+    if (_products[i].quantity > 1) _products[i].quantity--;
   });
 
   void _editItem(int i) async {
-    final nameController = TextEditingController(text: _items[i].name);
-    final priceController = TextEditingController(text: _items[i].price.toStringAsFixed(2));
-    String selectedStore = _items[i].store;
+    final nameController = TextEditingController(text: _products[i].name);
+    final priceController = TextEditingController(text: _products[i].price.toStringAsFixed(2));
+    String selectedStore = _products[i].store;
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Edit Item'),
+        title: Text(AppLocalizations.of(context)!.editProductTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name'),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.editProductName),
               autofocus: true,
             ),
             const SizedBox(height: 12),
             TextField(
               controller: priceController,
               keyboardType: TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Price (€)'),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.editProductPrice),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: selectedStore,
-              decoration: const InputDecoration(labelText: "Store"),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.editProductStore),
               items: _stores.where((s) => s != 'Alle').map((s) =>
                   DropdownMenuItem(value: s, child: Text(s))).toList(),
               onChanged: (s) => selectedStore = s!,
@@ -203,18 +217,18 @@ class _HomeScreenState extends State<HomeScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.editProductCancel),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context, {
                 'name': nameController.text.trim(),
                 'price': double.tryParse(
-                    priceController.text.replaceAll(',', '.').trim()) ?? _items[i].price,
+                    priceController.text.replaceAll(',', '.').trim()) ?? _products[i].price,
                 'store': selectedStore,
               });
             },
-            child: const Text('OK'),
+            child: Text(AppLocalizations.of(context)!.editProductOk),
           ),
         ],
       ),
@@ -222,18 +236,18 @@ class _HomeScreenState extends State<HomeScreen>
 
     if (result != null && result['name'].isNotEmpty) {
       setState(() {
-        _items[i].name = result['name'];
-        _items[i].price = result['price'];
-        _items[i].store = result['store'];
+        _products[i].name = result['name'];
+        _products[i].price = result['price'];
+        _products[i].store = result['store'];
       });
       final prefs = await SharedPreferences.getInstance();
-      final updated = _items.map((e) => jsonEncode(e.toJson())).toList();
-      await prefs.setStringList('itemTemplates', updated);
+      final updated = _products.map((e) => jsonEncode(e.toJson())).toList();
+      await prefs.setStringList('productTemplates', updated);
     }
   }
 
   double get _total =>
-      _items.fold(0.0, (sum, it) => sum + it.price * it.quantity);
+      _products.fold(0.0, (sum, it) => sum + it.price * it.quantity);
 
   Future<void> _loadSelectedStore() async {
     final prefs = await SharedPreferences.getInstance();
@@ -256,15 +270,15 @@ class _HomeScreenState extends State<HomeScreen>
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Center(
-          child: const Text(
-            'Save Receipt',
+          child: Text(
+            AppLocalizations.of(context)!.saveReceiptTitle,
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
         content: TextField(
           controller: controller,
           decoration: InputDecoration(
-            labelText: 'Enter a name',
+            labelText: AppLocalizations.of(context)!.saveReceiptNameLabel,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
@@ -284,7 +298,7 @@ class _HomeScreenState extends State<HomeScreen>
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
+                    child: Text(AppLocalizations.of(context)!.saveReceiptCancel),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -298,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                     onPressed: () =>
                         Navigator.pop(context, controller.text.trim()),
-                    child: const Text('Save'),
+                    child: Text(AppLocalizations.of(context)!.saveReceiptSave),
                   ),
                 ),
               ],
@@ -313,7 +327,7 @@ class _HomeScreenState extends State<HomeScreen>
     final receipt = Receipt(
       name: name,
       store: _selectedStore,
-      items: List.of(_items),
+      items: List.of(_products),
       limit: _limit,
       date: DateTime.now(),
       latitude: lat,
@@ -326,22 +340,73 @@ class _HomeScreenState extends State<HomeScreen>
     await prefs.setStringList(_prefsKey, list);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Receipt Saved!')),
+      SnackBar(content: Text(AppLocalizations.of(context)!.receiptSaved)),
     );
+  }
+
+  Future<void> _addProductFromTemplate() async {
+    final prefs = await SharedPreferences.getInstance();
+    final templates = prefs.getStringList('productTemplates') ?? [];
+    if (templates.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.noSavedProducts)),
+      );
+      return;
+    }
+
+    Product? selected;
+    await showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: Text(AppLocalizations.of(context)!.selectSavedProduct),
+          content: SizedBox(
+            width: 300,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: templates.length,
+              itemBuilder: (ctx, i) {
+                final item = Product.fromJson(jsonDecode(templates[i]));
+                return ListTile(
+                  title: Text(item.name),
+                  subtitle: Text('${item.price.toStringAsFixed(2)} € • ${item.store}'),
+                  onTap: () {
+                    selected = item;
+                    Navigator.of(ctx).pop();
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (selected != null) {
+      setState(() {
+        _products.add(selected!.copyWith());
+      });
+    }
   }
 
   Future<void> _loadReceiptList() async {}
 
   Future<void> _openFilterDialog() async {
-    final tmpFilters = Set<ItemFilter>.from(_activeFilters);
+    final tmpFilters = Set<ProductFilter>.from(_activeFilters);
     double? tmpLimit = _filterSpendingLimit;
 
     await showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text(
-            'Filter & Sort',
+          title: Text(
+            AppLocalizations.of(context)!.filterSortTitle,
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           content: StatefulBuilder(
@@ -350,25 +415,25 @@ class _HomeScreenState extends State<HomeScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   CheckboxListTile(
-                    value: tmpFilters.contains(ItemFilter.spendingLimit),
-                    title: const Text('Spending Limit'),
+                    value: tmpFilters.contains(ProductFilter.spendingLimit),
+                    title: Text(AppLocalizations.of(context)!.filterSpendingLimit),
                     controlAffinity: ListTileControlAffinity.leading,
                     onChanged: (v) {
                       setState(() {
                         if (v == true) {
-                          tmpFilters.add(ItemFilter.spendingLimit);
+                          tmpFilters.add(ProductFilter.spendingLimit);
                         } else {
-                          tmpFilters.remove(ItemFilter.spendingLimit);
+                          tmpFilters.remove(ProductFilter.spendingLimit);
                           tmpLimit = null;
                         }
                       });
                     },
-                    secondary: tmpFilters.contains(ItemFilter.spendingLimit)
+                    secondary: tmpFilters.contains(ProductFilter.spendingLimit)
                         ? SizedBox(
                             width: 100,
                             child: TextField(
-                              decoration: const InputDecoration(
-                                labelText: 'Limit (€)',
+                              decoration: InputDecoration(
+                                labelText: AppLocalizations.of(context)!.filterLimitLabel,
                               ),
                               keyboardType: TextInputType.numberWithOptions(
                                 decimal: true,
@@ -388,48 +453,48 @@ class _HomeScreenState extends State<HomeScreen>
                         : null,
                   ),
                   const Divider(),
-                  RadioListTile<ItemFilter>(
-                    value: ItemFilter.mostExpensive,
-                    groupValue: tmpFilters.contains(ItemFilter.mostExpensive)
-                        ? ItemFilter.mostExpensive
-                        : tmpFilters.contains(ItemFilter.cheapest)
-                        ? ItemFilter.cheapest
+                  RadioListTile<ProductFilter>(
+                    value: ProductFilter.mostExpensive,
+                    groupValue: tmpFilters.contains(ProductFilter.mostExpensive)
+                        ? ProductFilter.mostExpensive
+                        : tmpFilters.contains(ProductFilter.cheapest)
+                        ? ProductFilter.cheapest
                         : null,
-                    title: const Text('Sort: Most Expensive'),
+                    title: Text(AppLocalizations.of(context)!.filterSortMostExpensive),
                     onChanged: (val) {
                       setState(() {
-                        tmpFilters.remove(ItemFilter.cheapest);
-                        tmpFilters.add(ItemFilter.mostExpensive);
+                        tmpFilters.remove(ProductFilter.cheapest);
+                        tmpFilters.add(ProductFilter.mostExpensive);
                       });
                     },
                   ),
-                  RadioListTile<ItemFilter>(
-                    value: ItemFilter.cheapest,
-                    groupValue: tmpFilters.contains(ItemFilter.mostExpensive)
-                        ? ItemFilter.mostExpensive
-                        : tmpFilters.contains(ItemFilter.cheapest)
-                        ? ItemFilter.cheapest
+                  RadioListTile<ProductFilter>(
+                    value: ProductFilter.cheapest,
+                    groupValue: tmpFilters.contains(ProductFilter.mostExpensive)
+                        ? ProductFilter.mostExpensive
+                        : tmpFilters.contains(ProductFilter.cheapest)
+                        ? ProductFilter.cheapest
                         : null,
-                    title: const Text('Sort: Cheapest'),
+                    title: Text(AppLocalizations.of(context)!.filterSortCheapest),
                     onChanged: (val) {
                       setState(() {
-                        tmpFilters.remove(ItemFilter.mostExpensive);
-                        tmpFilters.add(ItemFilter.cheapest);
+                        tmpFilters.remove(ProductFilter.mostExpensive);
+                        tmpFilters.add(ProductFilter.cheapest);
                       });
                     },
                   ),
-                  RadioListTile<ItemFilter?>(
+                  RadioListTile<ProductFilter?>(
                     value: null,
-                    groupValue: tmpFilters.contains(ItemFilter.mostExpensive)
-                        ? ItemFilter.mostExpensive
-                        : tmpFilters.contains(ItemFilter.cheapest)
-                        ? ItemFilter.cheapest
+                    groupValue: tmpFilters.contains(ProductFilter.mostExpensive)
+                        ? ProductFilter.mostExpensive
+                        : tmpFilters.contains(ProductFilter.cheapest)
+                        ? ProductFilter.cheapest
                         : null,
-                    title: const Text('Sort: None'),
+                    title: Text(AppLocalizations.of(context)!.filterSortNone),
                     onChanged: (_) {
                       setState(() {
-                        tmpFilters.remove(ItemFilter.mostExpensive);
-                        tmpFilters.remove(ItemFilter.cheapest);
+                        tmpFilters.remove(ProductFilter.mostExpensive);
+                        tmpFilters.remove(ProductFilter.cheapest);
                       });
                     },
                   ),
@@ -439,11 +504,11 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           actions: [
             TextButton(
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(context)!.editProductCancel),
               onPressed: () => Navigator.pop(context),
             ),
             ElevatedButton(
-              child: const Text('Apply'),
+              child: Text(AppLocalizations.of(context)!.filterApply),
               onPressed: () {
                 setState(() {
                   _activeFilters = tmpFilters;
@@ -458,13 +523,13 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Future<void> _saveItemTemplate(Item item) async {
+  Future<void> _saveItemTemplate(Product item) async {
     final prefs = await SharedPreferences.getInstance();
-    final List<String> templates = prefs.getStringList('itemTemplates') ?? [];
+    final List<String> templates = prefs.getStringList('productTemplates') ?? [];
     final itemJson = jsonEncode(item.toJson());
     if (!templates.contains(itemJson)) {
       templates.add(itemJson);
-      await prefs.setStringList('itemTemplates', templates);
+      await prefs.setStringList('productTemplates', templates);
     }
   }
 
@@ -475,7 +540,7 @@ class _HomeScreenState extends State<HomeScreen>
           onItemDetected: (item) {
             item.store = _selectedStore;
             setState(() {
-              _items.add(item);
+              _products.add(item);
             });
           },
         ),
@@ -519,43 +584,49 @@ class _HomeScreenState extends State<HomeScreen>
         setState(() {
           _pendingShowLimitDialog = false;
           if (limit != null) {
-            _activeFilters.add(ItemFilter.spendingLimit);
+            _activeFilters.add(ProductFilter.spendingLimit);
             _filterSpendingLimit = limit;
           } else {
-            _activeFilters.remove(ItemFilter.spendingLimit);
+            _activeFilters.remove(ProductFilter.spendingLimit);
             _filterSpendingLimit = null;
           }
         });
       });
     }
 
-    List<Item> _filteredItems = _items.where((it) {
+    List<Product> _filteredItems = _products.where((it) {
       // Spending Limit Filter
-      if (_activeFilters.contains(ItemFilter.spendingLimit) &&
+      if (_activeFilters.contains(ProductFilter.spendingLimit) &&
           _filterSpendingLimit != null) {
         if (it.price * it.quantity > _filterSpendingLimit!) return false;
       }
       return true;
     }).toList();
 
-    if (_activeFilters.contains(ItemFilter.mostExpensive)) {
+    if (_activeFilters.contains(ProductFilter.mostExpensive)) {
       _filteredItems.sort(
         (a, b) => (b.price * b.quantity).compareTo(a.price * a.quantity),
       );
-    } else if (_activeFilters.contains(ItemFilter.cheapest)) {
+    } else if (_activeFilters.contains(ProductFilter.cheapest)) {
       _filteredItems.sort(
         (a, b) => (a.price * a.quantity).compareTo(b.price * b.quantity),
       );
     }
 
     final bool limitActive =
-        _activeFilters.contains(ItemFilter.spendingLimit) &&
+        _activeFilters.contains(ProductFilter.spendingLimit) &&
         _filterSpendingLimit != null;
     final bool overLimit = limitActive && _total > _filterSpendingLimit!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Shopping Cart')),
-      drawer: const AppDrawer(),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.drawerShoppingCart)),
+      drawer: AppDrawer(
+        themeMode: widget.themeMode,
+        onThemeChanged: widget.onThemeChanged,
+        locale: widget.locale,
+        onLocaleChanged: widget.onLocaleChanged,
+        onOpenSettings: widget.onOpenSettings,
+      ),
 
       body: SafeArea(
         child: Column(
@@ -564,7 +635,7 @@ class _HomeScreenState extends State<HomeScreen>
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
-                  const Text('Store:'),
+                  Text(AppLocalizations.of(context)!.storeLabel),
                   const SizedBox(width: 12),
                   Expanded(
                     child: DropdownButton<String>(
@@ -582,30 +653,30 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
                   Text(
-                    "Clear List:",
+                    AppLocalizations.of(context)!.clearList,
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                   IconButton(
                     icon: const Icon(Icons.highlight_remove_sharp),
-                    tooltip: "Clear List",
-                    onPressed: _items.isEmpty
+                    tooltip: AppLocalizations.of(context)!.clearList,
+                    onPressed: _products.isEmpty
                         ? null
                         : () async {
                             final confirm = await showDialog<bool>(
                               context: context,
                               builder: (ctx) => AlertDialog(
-                                title: const Text("Clear all items?"),
-                                content: const Text(
-                                  "Are you sure you want to remove all items from the list?",
+                                title: Text(AppLocalizations.of(context)!.clearListDialogTitle),
+                                content: Text(
+                                  AppLocalizations.of(context)!.clearListDialogContent,
                                 ),
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(ctx, false),
-                                    child: const Text("Cancel"),
+                                    child: Text(AppLocalizations.of(context)!.clearListDialogCancel),
                                   ),
                                   ElevatedButton(
                                     onPressed: () => Navigator.pop(ctx, true),
-                                    child: const Text("Clear"),
+                                    child: Text(AppLocalizations.of(context)!.clearListDialogConfirm),
                                   ),
                                 ],
                               ),
@@ -614,13 +685,13 @@ class _HomeScreenState extends State<HomeScreen>
                           },
                   ),
                   Text(
-                    "Filter:",
+                    AppLocalizations.of(context)!.filterLabel,
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                   DropdownButtonHideUnderline(
                     child: IconButton(
                       icon: const Icon(Icons.filter_list),
-                      tooltip: "Filter & Sort",
+                      tooltip: AppLocalizations.of(context)!.filterSortTitle,
                       onPressed: _openFilterDialog,
                     ),
                   ),
@@ -628,8 +699,8 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
             Expanded(
-              child: _items.isEmpty
-                  ? const Center(child: Text('No items. Scan an item sign.'))
+              child: _products.isEmpty
+                  ? Center(child: Text(AppLocalizations.of(context)!.noItems))
                   : ListView.builder(
                       padding: const EdgeInsets.fromLTRB(8, 8, 8, 150),
                       itemCount: _filteredItems.length,
@@ -668,11 +739,11 @@ class _HomeScreenState extends State<HomeScreen>
                             alignment: Alignment.centerLeft,
                             padding: const EdgeInsets.only(left: 24),
                             child: Row(
-                              children: const [
+                              children: [
                                 Icon(Icons.delete_forever_rounded, color: Colors.white, size: 32),
                                 SizedBox(width: 10),
                                 Text(
-                                  "Remove",
+                                  AppLocalizations.of(context)!.remove,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -695,11 +766,11 @@ class _HomeScreenState extends State<HomeScreen>
                             padding: const EdgeInsets.only(right: 24),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.end,
-                              children: const [
+                              children: [
                                 Icon(Icons.save, color: Colors.white, size: 32),
                                 SizedBox(width: 10),
                                 Text(
-                                  "Speichern",
+                                  AppLocalizations.of(context)!.saveProduct,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -715,7 +786,7 @@ class _HomeScreenState extends State<HomeScreen>
                             } else if (direction == DismissDirection.endToStart) {
                               await _saveItemTemplate(it);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Item Saved!")),
+                                SnackBar(content: Text(AppLocalizations.of(context)!.productSaved)),
                               );
                               return false;
                             }
@@ -723,7 +794,7 @@ class _HomeScreenState extends State<HomeScreen>
                           },
                           onDismissed: (direction) {
                             if (direction == DismissDirection.startToEnd) {
-                              setState(() => _items.remove(it));
+                              setState(() => _products.remove(it));
                             }
                           },
                           child: Card(
@@ -744,11 +815,11 @@ class _HomeScreenState extends State<HomeScreen>
                               ),
                               leading: GestureDetector(
                                 onTap: () => _pickImageForItem(i),
-                                child: _items[i].imageUrl != null
+                                child: _products[i].imageUrl != null
                                     ? ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
                                   child: Image.file(
-                                    File(_items[i].imageUrl!),
+                                    File(_products[i].imageUrl!),
                                     width: 40,
                                     height: 40,
                                     fit: BoxFit.cover,
@@ -812,8 +883,8 @@ class _HomeScreenState extends State<HomeScreen>
               padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.save),
-                label: const Text('Save Receipt'),
-                onPressed: _items.isEmpty ? null : _saveReceipt,
+                label: Text(AppLocalizations.of(context)!.saveReceiptNameLabel),
+                onPressed: _products.isEmpty ? null : _saveReceipt,
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
                   shape: RoundedRectangleBorder(
@@ -834,7 +905,7 @@ class _HomeScreenState extends State<HomeScreen>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Sum:', style: Theme.of(context).textTheme.titleLarge),
+              Text(AppLocalizations.of(context)!.sumLabel, style: Theme.of(context).textTheme.titleLarge),
               Text(
                 '${_total.toStringAsFixed(2)}€',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -855,15 +926,34 @@ class _HomeScreenState extends State<HomeScreen>
         padding: const EdgeInsets.only(bottom: 20.0),
         child: ScaleTransition(
           scale: _pulse,
-          child: FloatingActionButton.extended(
-            backgroundColor: Colors.amberAccent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            onPressed: _openCameraOCRScreen,
-            icon: const Icon(Icons.camera_alt),
-            label: const Text('Scan Product'),
-            tooltip: 'Scan product price sign',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              FloatingActionButton.extended(
+                backgroundColor: Colors.blueAccent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                icon: const Icon(Icons.add_box),
+                label: Text(AppLocalizations.of(context)!.addProduct),
+                tooltip: AppLocalizations.of(context)!.addFromSaved,
+                onPressed: _addProductFromTemplate,
+                heroTag: 'fab_add_product',
+              ),
+              const SizedBox(height: 16),
+              FloatingActionButton.extended(
+                backgroundColor: Colors.amberAccent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                icon: const Icon(Icons.camera_alt),
+                label: Text(AppLocalizations.of(context)!.scanProductSign),
+                tooltip: AppLocalizations.of(context)!.scanProductSign,
+                onPressed: _openCameraOCRScreen,
+                heroTag: 'fab_scan',
+              ),
+            ],
           ),
         ),
       ),

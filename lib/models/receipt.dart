@@ -1,9 +1,9 @@
-import 'item.dart';
+import 'product.dart';
 
 class Receipt {
   String name;
   String store;
-  List<Item> items;
+  List<Product> items;
   double limit;
   DateTime date;
   double? latitude;
@@ -34,7 +34,7 @@ class Receipt {
   static Receipt fromJson(Map<String, dynamic> json) => Receipt(
     name: json['name'],
     store: json['store'],
-    items: (json['items'] as List).map((e) => Item.fromJson(e)).toList(),
+    items: (json['items'] as List).map((e) => Product.fromJson(e)).toList(),
     limit: (json['limit'] ?? 0.0).toDouble(),
     date: DateTime.parse(json['date']),
     latitude: json['latitude'] != null ? (json['latitude'] as num).toDouble() : null,

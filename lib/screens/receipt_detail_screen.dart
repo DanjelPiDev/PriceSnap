@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../models/item.dart';
+import '../models/product.dart';
 
 class ReceiptDetailScreen extends StatefulWidget {
   final String name;
-  final List<Item> items;
+  final List<Product> items;
 
   const ReceiptDetailScreen({
     super.key,
@@ -16,13 +16,13 @@ class ReceiptDetailScreen extends StatefulWidget {
 }
 
 class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
-  late List<Item> _items;
+  late List<Product> _items;
   final Set<int> _favorites = {};
 
   @override
   void initState() {
     super.initState();
-    _items = List<Item>.from(widget.items);
+    _items = List<Product>.from(widget.items);
   }
 
   double get total =>

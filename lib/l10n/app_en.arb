@@ -1,0 +1,68 @@
+{
+  "appTitle": "PriceSnap",
+
+  "drawerShoppingCart": "Shopping Cart",
+  "drawerShoppingList": "Shopping List",
+  "drawerSavedData": "Saved Data",
+  "drawerSavedReceipts": "Saved Receipts",
+  "drawerSavedProducts": "Saved Products",
+  "drawerSettingsHeader": "Settings",
+  "drawerSettings": "Settings",
+  "drawerAbout": "About PriceSnap",
+  "drawerVersion": "Version {version}",
+
+  "storeLabel": "Store:",
+  "clearList": "Clear List:",
+  "clearListDialogTitle": "Clear all items?",
+  "clearListDialogContent": "Are you sure you want to remove all items from the list?",
+  "clearListDialogCancel": "Cancel",
+  "clearListDialogConfirm": "Clear",
+  "filterLabel": "Filter:",
+  "filterSortTitle": "Filter & Sort",
+  "filterSpendingLimit": "Spending Limit",
+  "filterLimitLabel": "Limit (€)",
+  "filterSortMostExpensive": "Sort: Most Expensive",
+  "filterSortCheapest": "Sort: Cheapest",
+  "filterSortNone": "Sort: None",
+  "filterApply": "Apply",
+
+  "noItems": "No items. Scan an item sign.",
+  "sumLabel": "Sum:",
+
+  "editProductTitle": "Edit Product",
+  "editProductName": "Name",
+  "editProductPrice": "Price (€)",
+  "editProductStore": "Store",
+  "editProductCancel": "Cancel",
+  "editProductOk": "OK",
+  "takePhoto": "Take a Photo",
+  "selectPhotoFromGallery": "Select from Gallery",
+
+  "remove": "Remove",
+  "saveProduct": "Save Product",
+  "productSaved": "Product Saved!",
+  "noSavedProducts": "No saved products found!",
+
+  "saveReceiptTitle": "Save Receipt",
+  "saveReceiptNameLabel": "Save Receipt",
+  "saveReceiptSave": "Save",
+  "saveReceiptCancel": "Cancel",
+  "receiptSaved": "Receipt Saved!",
+
+  "selectSavedProduct": "Select Saved Product",
+
+  "addProduct": "Add Product",
+  "scanProduct": "Scan Product",
+  "addFromSaved": "Add from saved products",
+  "scanProductSign": "Scan product price sign",
+
+  "quantity": "Quantity",
+  "saved": "Saved",
+  "cheapest": "Cheapest",
+  "mostExpensive": "Most Expensive",
+
+  "language": "Language",
+  "theme": "Theme",
+  "lightMode": "Light",
+  "darkMode": "Dark"
+}

@@ -6,10 +6,10 @@ import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
 
-import '../models/item.dart';
+import '../models/product.dart';
 
 class CameraOCRScreen extends StatefulWidget {
-  final void Function(Item) onItemDetected;
+  final void Function(Product) onItemDetected;
 
   const CameraOCRScreen({super.key, required this.onItemDetected});
 
@@ -153,7 +153,7 @@ class _CameraOCRScreenState extends State<CameraOCRScreen>
         name = nameLines.map((l) => l.text).join(" ");
       }
 
-      widget.onItemDetected(Item(name: name, price: price));
+      widget.onItemDetected(Product(name: name, price: price));
       //Navigator.pop(context);
       return;
     }
