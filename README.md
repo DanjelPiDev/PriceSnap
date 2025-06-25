@@ -6,12 +6,14 @@ If you've ever stood in a R EWE or Lidl aisle squinting at a red price tag wonde
 A small Flutter/Dart project to learn the framework and build something practical:
 A price scanner that extracts product names and prices straight from a photo of a store label. Because saying *“I built an OCR AI tool”* sounds cooler than *“I took a photo of my receipt.”*
 
-![PriceSnap MainScreen](images/Screenshot_20250625_194153.jpg)
-![App Drawer](images/Screenshot_20250625_194209.jpg)
-![Saved Products](images/Screenshot_20250625_194727.jpg)
-![Screenshot_20250625_201235.jpg](images/Screenshot_20250625_201235.jpg)
-![Screenshot_20250625_201754.jpg](images/Screenshot_20250625_201754.jpg)
-![Screenshot_20250625_201823.jpg](images/Screenshot_20250625_201823.jpg)
+<div align="center">
+    <img src="images/Screenshot_20250625_194153.jpg" alt="Screenshot of PriceSnap" width="300">
+    <img src="images/Screenshot_20250625_194209.jpg" alt="Screenshot of PriceSnap" width="300">
+    <img src="images/Screenshot_20250625_194727.jpg" alt="Screenshot of PriceSnap" width="300">
+    <img src="images/Screenshot_20250625_201235.jpg" alt="Screenshot of PriceSnap" width="300">
+    <img src="images/Screenshot_20250625_201754.jpg" alt="Screenshot of PriceSnap" width="300">
+    <img src="images/Screenshot_20250625_201823.jpg" alt="Screenshot of PriceSnap" width="300">
+</div>
 
 ## What Does It Actually Do?
 
