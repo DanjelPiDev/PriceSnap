@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../screens/saved_item_screen.dart';
 import '../screens/saved_list_screen.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -51,6 +52,12 @@ class AppDrawer extends StatelessWidget {
                   title: 'Shopping Cart',
                   onTap: () => Navigator.pop(context),
                 ),
+                const Divider(height: 32, indent: 16, endIndent: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text('Saved Data',
+                      style: Theme.of(context).textTheme.titleSmall),
+                ),
                 _buildTile(
                   context,
                   icon: Icons.receipt_long,
@@ -62,6 +69,18 @@ class AppDrawer extends StatelessWidget {
                       MaterialPageRoute(builder: (_) => const SavedListScreen()),
                     );
                   },
+                ),
+                _buildTile(
+                  context,
+                  icon: Icons.production_quantity_limits,
+                  title: 'Saved Items',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SavedItemsScreen()),
+                    );
+                  }
                 ),
                 const Divider(height: 32, indent: 16, endIndent: 16),
 
@@ -93,7 +112,7 @@ class AppDrawer extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              'v1.0.0',
+              'v0.1.0',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
