@@ -10,7 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/item.dart';
 import '../services/rewe/rewe_product_match.dart';
 import '../widgets/app_drawer.dart';
-import 'live_scan_screen.dart';
+import 'camera_ocr_screen.dart';
 
 enum ItemFilter { spendingLimit, mostExpensive, cheapest }
 
@@ -86,104 +86,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return _items
         .map((it) => it.price * it.quantity)
         .reduce((a, b) => a > b ? a : b);
-  }
-
-  void _openLiveScan() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => LiveScanScreen(
-          onItemConfirmed: (Item item) {
-            setState(() {
-              _items.add(item);
-            });
-          },
-        ),
-      ),
-    );
-  }
-
-  Future<void> pickAndRecognizeText() async {
-    final pickedImage = await ImagePicker().pickImage(
-      source: ImageSource.camera,
-    );
-    if (pickedImage == null) return;
-
-    final inputImage = InputImage.fromFilePath(pickedImage.path);
-    final textRecognizer = GoogleMlKit.vision.textRecognizer();
-    final recognized = await textRecognizer.processImage(inputImage);
-    await textRecognizer.close();
-
-    final priceLineRegEx = RegExp(r'^\d+[.,]\d{2}$');
-    final possiblePrices = recognized.blocks
-        .expand((block) => block.lines)
-        .map((line) => line.text.trim())
-        .where((text) => priceLineRegEx.hasMatch(text))
-        .toList();
-    final weightRegEx   = RegExp(r'^\d+[.,]?\d*\s*(g|kg|ml|l)\b', caseSensitive: false);
-
-    final linesList = recognized.blocks
-        .expand((b) => b.lines)
-        .map((l) => l.text.trim())
-        .toList();
-
-    print("_____________");
-    print(linesList);
-
-    List<String> nameBuffer = [];
-
-    for (var line in linesList) {
-      final unitPriceRegEx = RegExp(r'^(\d+[.,]?\d*)\s*(g|kg|ml|l)\s*=\s*(\d+[.,]\d{2})$', caseSensitive: false);
-      final weightOnlyRegEx = RegExp(r'^\d+[.,]?\d*\s*(g|kg|ml|l)\b', caseSensitive: false);
-
-      if (weightRegEx.hasMatch(line) || line.contains('=') || line.toLowerCase().startsWith('kg')) {
-        continue;
-      }
-
-      var upMatch = unitPriceRegEx.firstMatch(line);
-      if (upMatch != null) {
-
-        final upRaw      = upMatch.group(3)!.replaceAll(',', '.');
-        final unitPrice  = double.parse(upRaw);
-
-        setState(() {
-          _items.last.unitPrice = unitPrice;
-        });
-        continue;
-      }
-
-      if (weightOnlyRegEx.hasMatch(line)) continue;
-
-      if (possiblePrices.isNotEmpty) {
-        var raw = line.replaceAll(RegExp(r'[^0-9.,]'), '');
-
-        if (!raw.contains(RegExp(r'[.,]')) && raw.length > 2) {
-          raw = '${raw.substring(0, raw.length - 2)}.${raw.substring(raw.length - 2)}';
-        }
-        raw = raw.replaceAll(',', '.');
-        final price = double.parse(raw);
-
-        if (nameBuffer.isNotEmpty) {
-          final name = nameBuffer.join(' ');
-          setState(() {
-            _items.add(Item(name: name, price: price));
-          });
-          nameBuffer.clear();
-
-          final match = await _rewe.matchProduct(name);
-
-          if (match != null) {
-            setState(() {
-              final idx = _items.length - 1;
-              _items[idx].name = match.name;
-              _items[idx].imageUrl = match.imageUrl;
-            });
-          }
-        }
-      }
-      else if (RegExp(r'[A-Za-zÄÖÜäöüß]').hasMatch(line)) {
-        nameBuffer.add(line);
-      }
-    }
   }
 
   Future<void> scanBarcode(int index) async {
@@ -338,6 +240,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _loadReceiptList() async {
+  }
+
+  void _openCameraOCRScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CameraOCRScreen(
+          onItemDetected: (item) {
+            setState(() {
+              _items.add(item);
+            });
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -622,7 +538,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          onPressed: pickAndRecognizeText,//_openLiveScan,
+          onPressed: _openCameraOCRScreen,//_openLiveScan,
           icon: const Icon(Icons.camera_alt),
           label: const Text('Scan'),
           tooltip: 'Scan product price sign',
