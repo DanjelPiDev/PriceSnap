@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:price_snap/screens/home_screen.dart';
+import 'package:price_snap/screens/shopping_cart.dart';
 
 import 'package:intl/date_symbol_data_local.dart';
 

@@ -4,8 +4,9 @@ class Item {
   int quantity;
   double? unitPrice;
   String? imageUrl;
+  String store = 'Alle';
 
-  Item({required this.name, required this.price, this.quantity = 1, this.unitPrice, this.imageUrl,});
+  Item({required this.name, required this.price, this.quantity = 1, this.unitPrice, this.imageUrl, this.store = 'Alle'});
 
   Map<String, dynamic> toJson() => {
     'name': name,
@@ -13,6 +14,7 @@ class Item {
     'quantity': quantity,
     'unitPrice': unitPrice,
     'imageUrl': imageUrl,
+    'store': 'Alle',
   };
 
   factory Item.fromJson(Map<String, dynamic> json) => Item(
@@ -21,5 +23,6 @@ class Item {
     quantity: json['quantity'],
     unitPrice: (json['unitPrice'] as num?)?.toDouble(),
     imageUrl: json['imageUrl'] as String?,
+    store: json['store'] as String? ?? 'Alle', // Default value if not provided
   );
 }

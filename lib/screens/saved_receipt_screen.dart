@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:price_snap/screens/receipt_detail_screen.dart';
 import '../models/item.dart';
+import '../models/receipt.dart';
 
 class SavedListScreen extends StatefulWidget {
   const SavedListScreen({super.key});
@@ -17,7 +18,7 @@ class _SavedListScreenState extends State<SavedListScreen> {
   static const _prefsKey = 'savedReceipts';
   static const _favKey   = 'favoriteReceipts';
 
-  List<Map<String, dynamic>> _receipts = [];
+  List<Receipt> _receipts = [];
   Set<String> _favorites = {};
 
   @override
@@ -29,7 +30,7 @@ class _SavedListScreenState extends State<SavedListScreen> {
   Future<void> _loadAll() async {
     final prefs = await SharedPreferences.getInstance();
     final list = prefs.getStringList(_prefsKey) ?? [];
-    _receipts = list.map((e) => jsonDecode(e) as Map<String, dynamic>).toList();
+    _receipts = list.map((e) => Receipt.fromJson(jsonDecode(e))).toList();
     final favList = prefs.getStringList(_favKey) ?? [];
     _favorites = favList.toSet();
     setState(() {});
@@ -39,7 +40,7 @@ class _SavedListScreenState extends State<SavedListScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(
       _prefsKey,
-      _receipts.map((r) => jsonEncode(r)).toList(),
+      _receipts.map((r) => jsonEncode(r.toJson())).toList(),
     );
   }
 
@@ -56,18 +57,14 @@ class _SavedListScreenState extends State<SavedListScreen> {
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: _receipts.length,
         itemBuilder: (ctx, i) {
-          final rec   = _receipts[i];
-          final name  = rec['name'] as String;
-          final items = (rec['items'] as List)
-              .map((e) => Item.fromJson(e))
-              .toList();
+          final rec = _receipts[i];
+          final name = rec.name;
+          final items = rec.items;
           final isFav = _favorites.contains(name);
 
-          final total = items.fold<double>(0, (sum, it) => sum + it.price * it.quantity);
-          final limitNum = rec['limit'] as num?;
-          final hasLimit = limitNum != null && limitNum > 0;
-          final dateStr  = rec['date'] as String?;
-          final date = dateStr != null ? DateTime.parse(dateStr) : null;
+          final total = rec.total;
+          final hasLimit = rec.limit > 0;
+          final date = rec.date;
           final fmtDate = date != null
               ? DateFormat.yMMMd('de').add_Hm().format(date)
               : '-';
@@ -171,10 +168,15 @@ class _SavedListScreenState extends State<SavedListScreen> {
                                 ),
                                 Chip(
                                   label: Text(
-                                    '${total.toStringAsFixed(2)}€ / ${hasLimit ? '${limitNum!.toStringAsFixed(2)}€' : '-'}',
+                                    '${total.toStringAsFixed(2)}€ / ${hasLimit ? '${rec.limit.toStringAsFixed(2)}€' : '-'}',
                                   ),
                                   visualDensity: VisualDensity.compact,
                                 ),
+                                if (rec.store.isNotEmpty)
+                                  Chip(
+                                    label: Text(rec.store),
+                                    visualDensity: VisualDensity.compact,
+                                  ),
                               ],
                             ),
                           ],

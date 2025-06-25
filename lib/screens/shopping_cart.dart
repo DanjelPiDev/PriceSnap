@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -8,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/item.dart';
+import '../models/receipt.dart';
 import '../widgets/app_drawer.dart';
 import 'camera_ocr_screen.dart';
 
@@ -93,6 +95,47 @@ class _HomeScreenState extends State<HomeScreen>
     setState(() => _items.clear());
   }
 
+  Future<void> _pickImageForItem(int index) async {
+    final picker = ImagePicker();
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text("Take a Photo"),
+              onTap: () => Navigator.pop(ctx, "camera"),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text("Select from Gallery"),
+              onTap: () => Navigator.pop(ctx, "gallery"),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == null) return;
+
+    final XFile? image = await picker.pickImage(
+      source: result == "camera" ? ImageSource.camera : ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
+    );
+    if (image == null) return;
+
+    setState(() {
+      _items[index].imageUrl = image.path;
+    });
+  }
+
   Future<void> scanBarcode(int index) async {
     final picked = await ImagePicker().pickImage(source: ImageSource.camera);
     if (picked == null) return;
@@ -124,26 +167,69 @@ class _HomeScreenState extends State<HomeScreen>
     if (_items[i].quantity > 1) _items[i].quantity--;
   });
 
-  void _editName(int i) async {
-    final controller = TextEditingController(text: _items[i].name);
-    final name = await showDialog<String>(
+  void _editItem(int i) async {
+    final nameController = TextEditingController(text: _items[i].name);
+    final priceController = TextEditingController(text: _items[i].price.toStringAsFixed(2));
+    String selectedStore = _items[i].store;
+
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Edit Name'),
-        content: TextField(controller: controller),
+        title: const Text('Edit Item'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Name'),
+              autofocus: true,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: priceController,
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(labelText: 'Price (€)'),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: selectedStore,
+              decoration: const InputDecoration(labelText: "Store"),
+              items: _stores.where((s) => s != 'Alle').map((s) =>
+                  DropdownMenuItem(value: s, child: Text(s))).toList(),
+              onChanged: (s) => selectedStore = s!,
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            onPressed: () {
+              Navigator.pop(context, {
+                'name': nameController.text.trim(),
+                'price': double.tryParse(
+                    priceController.text.replaceAll(',', '.').trim()) ?? _items[i].price,
+                'store': selectedStore,
+              });
+            },
             child: const Text('OK'),
           ),
         ],
       ),
     );
-    if (name != null && name.isNotEmpty) setState(() => _items[i].name = name);
+
+    if (result != null && result['name'].isNotEmpty) {
+      setState(() {
+        _items[i].name = result['name'];
+        _items[i].price = result['price'];
+        _items[i].store = result['store'];
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final updated = _items.map((e) => jsonEncode(e.toJson())).toList();
+      await prefs.setStringList('itemTemplates', updated);
+    }
   }
 
   double get _total =>
@@ -223,19 +309,25 @@ class _HomeScreenState extends State<HomeScreen>
     );
     if (name == null || name.isEmpty) return;
 
-    final entry = jsonEncode({
-      'name': name,
-      'items': _items.map((e) => e.toJson()).toList(),
-      'limit': _limit,
-      'date': DateTime.now().toIso8601String(),
-    });
-    final list = prefs.getStringList(_prefsKey) ?? [];
+    double? lat, lng; // For later...
+    final receipt = Receipt(
+      name: name,
+      store: _selectedStore,
+      items: List.of(_items),
+      limit: _limit,
+      date: DateTime.now(),
+      latitude: lat,
+      longitude: lng,
+    );
+
+    final entry = jsonEncode(receipt.toJson());
+    final list = prefs.getStringList('savedReceipts') ?? [];
     list.add(entry);
     await prefs.setStringList(_prefsKey, list);
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Receipt Saved!')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Receipt Saved!')),
+    );
   }
 
   Future<void> _loadReceiptList() async {}
@@ -381,6 +473,7 @@ class _HomeScreenState extends State<HomeScreen>
       MaterialPageRoute(
         builder: (_) => CameraOCRScreen(
           onItemDetected: (item) {
+            item.store = _selectedStore;
             setState(() {
               _items.add(item);
             });
@@ -649,35 +742,31 @@ class _HomeScreenState extends State<HomeScreen>
                                 horizontal: 16,
                                 vertical: 8,
                               ),
-                              leading: it.imageUrl != null
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: CachedNetworkImage(
-                                        imageUrl: it.imageUrl!,
-                                        width: 40,
-                                        height: 40,
-                                        fit: BoxFit.cover,
-                                        placeholder: (_, __) => const SizedBox(
-                                          width: 40,
-                                          height: 40,
-                                          child: Center(
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                            ),
-                                          ),
-                                        ),
-                                        errorWidget: (_, __, ___) => const Icon(
-                                          Icons.image_not_supported,
-                                        ),
-                                      ),
-                                    )
-                                  : const Icon(
-                                      Icons.image,
-                                      size: 40,
-                                      color: Colors.grey,
-                                    ),
+                              leading: GestureDetector(
+                                onTap: () => _pickImageForItem(i),
+                                child: _items[i].imageUrl != null
+                                    ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.file(
+                                    File(_items[i].imageUrl!),
+                                    width: 40,
+                                    height: 40,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                                    : Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[200],
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.grey[400]!),
+                                  ),
+                                  child: const Icon(Icons.image, size: 24, color: Colors.grey),
+                                ),
+                              ),
                               title: GestureDetector(
-                                onTap: () => _editName(i),
+                                onTap: () => _editItem(i),
                                 child: Text(
                                   it.name,
                                   style: const TextStyle(
