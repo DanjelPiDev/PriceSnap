@@ -44,6 +44,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storeLabel => 'Store:';
 
   @override
+  String get storeTitle => 'Store';
+
+  @override
   String get clearList => 'Clear List:';
 
   @override
@@ -82,6 +85,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get filterApply => 'Apply';
+
+  @override
+  String get productExistsTitle => 'Product already exists';
+
+  @override
+  String get productExistsDescription =>
+      'Do you really want to overwrite the saved product?';
+
+  @override
+  String get productOverwrite => 'Overwrite';
+
+  @override
+  String get productOverwritten => 'Product overwritten.';
 
   @override
   String get noItems => 'No items. Scan an item sign.';
@@ -125,6 +141,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get saveProduct => 'Save Product';
+
+  @override
+  String get save => 'Save';
 
   @override
   String get productSaved => 'Product Saved!';
@@ -185,4 +204,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get darkMode => 'Dark';
+
+  @override
+  String get activeShoppingList => 'Active';
+
+  @override
+  String get inactiveShoppingList => 'Inactive';
+
+  @override
+  String get doneShoppingList => 'Done';
+
+  @override
+  String get amount => 'Amount';
+
+  @override
+  String get noShoppingListsYet => 'No shopping lists yet!';
+
+  @override
+  String get noProductsYet => 'No products yet!';
+
+  @override
+  String get products => 'Products';
+
+  @override
+  String get changeStatus => 'Change Status';
+
+  @override
+  String get newShoppingList => 'New Shopping List';
+
+  @override
+  String get editShoppingList => 'Edit Shopping List';
+
+  @override
+  String get nameOfShoppingList => 'Name of Shopping List';
+
+  @override
+  String get selectTemplateProduct => 'Select Template';
+
+  @override
+  String get total => 'Total';
 }

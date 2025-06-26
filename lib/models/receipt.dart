@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../utils/store_utils.dart';
 import 'product.dart';
 
@@ -24,7 +26,7 @@ class Receipt {
 
   Map<String, dynamic> toJson() => {
     'name': name,
-    'store': store,
+    'store': storeToJsonString(store),
     'items': items.map((e) => e.toJson()).toList(),
     'limit': limit,
     'date': date.toIso8601String(),
@@ -34,7 +36,9 @@ class Receipt {
 
   static Receipt fromJson(Map<String, dynamic> json) => Receipt(
     name: json['name'],
-    store: json['store'],
+    store: json['store'] != null
+        ? storeFromString(json['store'])
+        : Store.none,
     items: (json['items'] as List).map((e) => Product.fromJson(e)).toList(),
     limit: (json['limit'] ?? 0.0).toDouble(),
     date: DateTime.parse(json['date']),

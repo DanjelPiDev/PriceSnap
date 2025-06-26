@@ -1,6 +1,5 @@
 {
   "appTitle": "PriceSnap",
-
   "drawerShoppingCart": "Shopping Cart",
   "drawerShoppingList": "Shopping List",
   "drawerSavedData": "Saved Data",
@@ -10,8 +9,8 @@
   "drawerSettings": "Settings",
   "drawerAbout": "About PriceSnap",
   "drawerVersion": "Version {version}",
-
   "storeLabel": "Store:",
+  "storeTitle": "Store",
   "clearList": "Clear List:",
   "clearListDialogTitle": "Clear all items?",
   "clearListDialogContent": "Are you sure you want to remove all items from the list?",
@@ -25,10 +24,12 @@
   "filterSortCheapest": "Sort: Cheapest",
   "filterSortNone": "Sort: None",
   "filterApply": "Apply",
-
+  "productExistsTitle": "Product already exists",
+  "productExistsDescription": "Do you really want to overwrite the saved product?",
+  "productOverwrite": "Overwrite",
+  "productOverwritten": "Product overwritten.",
   "noItems": "No items. Scan an item sign.",
   "sumLabel": "Sum:",
-
   "editProductTitle": "Edit Product",
   "editProductName": "Name",
   "editProductPrice": "Price (€)",
@@ -39,32 +40,40 @@
   "selectPhotoFromGallery": "Select from Gallery",
   "alreadyExists": "Product already exists!",
   "alreadyExistsDescription": "The product already exists in your templates.",
-
   "remove": "Remove",
   "saveProduct": "Save Product",
+  "save": "Save",
   "productSaved": "Product Saved!",
   "noSavedProducts": "No saved products found!",
-
   "saveReceiptTitle": "Save Receipt",
   "saveReceiptNameLabel": "Save Receipt",
   "saveReceiptSave": "Save",
   "saveReceiptCancel": "Cancel",
   "receiptSaved": "Receipt Saved!",
-
   "selectSavedProduct": "Select Saved Product",
-
   "addProduct": "Add Product",
   "scanProduct": "Scan Product",
   "addFromSaved": "Add from saved products",
   "scanProductSign": "Scan product price sign",
-
   "quantity": "Quantity",
   "saved": "Saved",
   "cheapest": "Cheapest",
   "mostExpensive": "Most Expensive",
-
   "language": "Language",
   "theme": "Theme",
   "lightMode": "Light",
-  "darkMode": "Dark"
+  "darkMode": "Dark",
+  "activeShoppingList": "Active",
+  "inactiveShoppingList": "Inactive",
+  "doneShoppingList": "Done",
+  "amount": "Amount",
+  "noShoppingListsYet": "No shopping lists yet!",
+  "noProductsYet": "No products yet!",
+  "products": "Products",
+  "changeStatus": "Change Status",
+  "newShoppingList": "New Shopping List",
+  "editShoppingList": "Edit Shopping List",
+  "nameOfShoppingList": "Name of Shopping List",
+  "selectTemplateProduct": "Select Template",
+  "total": "Total"
 }

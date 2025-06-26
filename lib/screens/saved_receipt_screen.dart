@@ -88,9 +88,6 @@ class _SavedListScreenState extends State<SavedListScreen> {
               });
               await _saveReceipts();
               await _saveFavorites();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('„$name“ deleted')),
-              );
             },
             child: Card(
               margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

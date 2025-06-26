@@ -44,6 +44,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get storeLabel => 'Markt:';
 
   @override
+  String get storeTitle => 'Markt';
+
+  @override
   String get clearList => 'Liste leeren:';
 
   @override
@@ -82,6 +85,19 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get filterApply => 'Anwenden';
+
+  @override
+  String get productExistsTitle => 'Produkt existiert schon';
+
+  @override
+  String get productExistsDescription =>
+      'Möchtest du das gespeicherte Produkt wirklich überschreiben?';
+
+  @override
+  String get productOverwrite => 'Überschreiben';
+
+  @override
+  String get productOverwritten => 'Produkt überschrieben.';
 
   @override
   String get noItems => 'Keine Artikel. Scanne ein Preisschild.';
@@ -125,6 +141,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get saveProduct => 'Produkt speichern';
+
+  @override
+  String get save => 'Speichern';
 
   @override
   String get productSaved => 'Produkt gespeichert!';
@@ -185,4 +204,43 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get darkMode => 'Dunkel';
+
+  @override
+  String get activeShoppingList => 'Aktiv';
+
+  @override
+  String get inactiveShoppingList => 'Inaktiv';
+
+  @override
+  String get doneShoppingList => 'Fertig';
+
+  @override
+  String get amount => 'Menge';
+
+  @override
+  String get noShoppingListsYet => 'Noch keine Einkaufslisten vorhanden!';
+
+  @override
+  String get noProductsYet => 'Noch keine Produkte!';
+
+  @override
+  String get products => 'Produkte';
+
+  @override
+  String get changeStatus => 'Status ändern';
+
+  @override
+  String get newShoppingList => 'Neue Einkaufsliste';
+
+  @override
+  String get editShoppingList => 'Einkaufsliste bearbeiten';
+
+  @override
+  String get nameOfShoppingList => 'Name der Einkaufsliste';
+
+  @override
+  String get selectTemplateProduct => 'Vorlage auswählen';
+
+  @override
+  String get total => 'Gesamt';
 }

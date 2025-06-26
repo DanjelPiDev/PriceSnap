@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:price_snap/utils/store_utils.dart';
 import 'package:uuid/uuid.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -154,7 +155,7 @@ class _CameraOCRScreenState extends State<CameraOCRScreen>
         name = nameLines.map((l) => l.text).join(" ");
       }
 
-      widget.onItemDetected(Product(name: name, price: price));
+      widget.onItemDetected(Product(name: name, price: price, store: Store.none));
       //Navigator.pop(context);
       return;
     }

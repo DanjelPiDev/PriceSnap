@@ -10,7 +10,7 @@ class Product {
   int quantity;
   double? unitPrice;
   String? imageUrl;
-  Store? store;
+  Store store;
 
   Product({
     String? id,
@@ -19,7 +19,7 @@ class Product {
     this.quantity = 1,
     this.unitPrice,
     this.imageUrl,
-    this.store,
+    required this.store,
   }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toJson() => {
@@ -29,7 +29,7 @@ class Product {
     'quantity': quantity,
     'unitPrice': unitPrice,
     'imageUrl': imageUrl,
-    'store': store,
+    'store': store != null ? store.toString().split('.').last : null,
   };
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
@@ -39,12 +39,10 @@ class Product {
     quantity: json['quantity'],
     unitPrice: (json['unitPrice'] as num?)?.toDouble(),
     imageUrl: json['imageUrl'] as String?,
-    store: json['store'] != null
-        ? Store.values.firstWhere(
-            (s) => s.toString().split('.').last == json['store'],
-            orElse: () => Store.none,
-          )
-        : null,
+    store: Store.values.firstWhere(
+      (s) => s.toString() == 'Store.${json['store']}',
+      orElse: () => Store.none,
+    ),
   );
 
   Product copyWith({

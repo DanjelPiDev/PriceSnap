@@ -10,6 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_localizations.dart';
 import '../models/product.dart';
 import '../models/receipt.dart';
+import '../models/shopping_list.dart';
+import '../storage/shopping_list_storage.dart';
 import '../widgets/app_drawer.dart';
 import '../utils/store_utils.dart';
 import 'camera_ocr_screen.dart';
@@ -53,7 +55,11 @@ class _ShoppingCartState extends State<ShoppingCart>
     Store.netto,
     Store.penny,
   ];
+
   Store _selectedStore = Store.none;
+
+  ShoppingList? _activeList;
+  Map<String, bool> _checked = {};
 
   // Just placeholders...
   static const _storeApi = {
@@ -98,6 +104,7 @@ class _ShoppingCartState extends State<ShoppingCart>
     super.initState();
     _loadReceiptList();
     _loadSelectedStore();
+    _loadActiveList();
 
     _ctrl = AnimationController(
       vsync: this,
@@ -108,6 +115,14 @@ class _ShoppingCartState extends State<ShoppingCart>
 
   void _clearList() {
     setState(() => _products.clear());
+  }
+
+  Future<void> _loadActiveList() async {
+    final list = await getActiveShoppingList();
+    setState(() {
+      _activeList = list;
+      _checked = {for (var p in list?.items ?? []) p.id: false};
+    });
   }
 
   Future<void> _pickImageForItem(int index) async {
@@ -292,6 +307,7 @@ class _ShoppingCartState extends State<ShoppingCart>
   Future<void> _saveReceipt() async {
     final prefs = await SharedPreferences.getInstance();
     final controller = TextEditingController();
+
     final name = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
@@ -353,10 +369,32 @@ class _ShoppingCartState extends State<ShoppingCart>
     if (name == null || name.isEmpty) return;
 
     double? lat, lng; // For later...
+    final cartItems = List<Product>.of(_products);
+    final checkedItems =
+        _activeList?.items
+            .where((item) => _checked[item.id] == true)
+            .toList() ??
+        [];
+
+    final all = <String, Product>{};
+
+    for (final p in cartItems) {
+      all[p.id] = p.copyWith();
+    }
+    for (final p in checkedItems) {
+      if (all.containsKey(p.id)) {
+        final orig = all[p.id]!;
+        all[p.id] = orig.copyWith(quantity: orig.quantity + p.quantity);
+      } else {
+        all[p.id] = p.copyWith();
+      }
+    }
+    final mergedItems = all.values.toList();
+
     final receipt = Receipt(
       name: name,
       store: _selectedStore,
-      items: List.of(_products),
+      items: mergedItems,
       limit: _limit,
       date: DateTime.now(),
       latitude: lat,
@@ -367,27 +405,18 @@ class _ShoppingCartState extends State<ShoppingCart>
     final list = prefs.getStringList('savedReceipts') ?? [];
     list.add(entry);
     await prefs.setStringList(_prefsKey, list);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context)!.receiptSaved)),
-    );
   }
 
   Future<void> _addProductFromTemplate() async {
     final prefs = await SharedPreferences.getInstance();
     final templates = prefs.getStringList('productTemplates') ?? [];
     if (templates.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.noSavedProducts)),
-      );
       return;
     }
 
-    // Wichtig: Im Dialog State halten!
     await showDialog(
       context: context,
       builder: (_) {
-        // Brauchen ein StatefulBuilder, um innerhalb des Dialogs die UI zu refreshen!
         return AlertDialog(
           title: Text(AppLocalizations.of(context)!.selectSavedProduct),
           content: SizedBox(
@@ -401,7 +430,6 @@ class _ShoppingCartState extends State<ShoppingCart>
                   itemBuilder: (ctx, i) {
                     final item = Product.fromJson(jsonDecode(templates[i]));
 
-                    // Prüfen: Ist schon im Warenkorb?
                     final cartIndex = _products.indexWhere(
                       (p) =>
                           p.name == item.name &&
@@ -466,7 +494,7 @@ class _ShoppingCartState extends State<ShoppingCart>
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           subtitle: Text(
-                            '${item.price.toStringAsFixed(2)}€ • ${item.store}',
+                            '${item.price.toStringAsFixed(2)}€ • ${item.store.name}',
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -653,45 +681,60 @@ class _ShoppingCartState extends State<ShoppingCart>
     );
   }
 
+  double get _checkedTotal {
+    if (_activeList == null) return 0.0;
+    double sum = 0.0;
+    for (final item in _activeList!.items) {
+      if (_checked[item.id] == true) {
+        sum += item.price * item.quantity;
+      }
+    }
+    return sum;
+  }
+
   Future<void> _saveItemTemplate(Product item) async {
     final prefs = await SharedPreferences.getInstance();
     final List<String> templates =
         prefs.getStringList('productTemplates') ?? [];
 
+    final itemToSave = item.copyWith(quantity: 1);
+
     final List<Product> savedProducts = templates
         .map((e) => Product.fromJson(jsonDecode(e)))
         .toList();
 
-    final bool exists = savedProducts.any((p) => p.id == item.id);
+    final index = savedProducts.indexWhere((p) => p.id == item.id);
 
-    if (exists) {
+    if (index != -1) {
       if (mounted) {
-        showDialog(
+        final overwrite = await showDialog<bool>(
           context: context,
           builder: (_) => AlertDialog(
-            title: Text(AppLocalizations.of(context)!.alreadyExists),
+            title: Text(AppLocalizations.of(context)!.productExistsTitle),
             content: Text(
-              AppLocalizations.of(context)!.alreadyExistsDescription,
+              AppLocalizations.of(context)!.productExistsDescription,
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Abbrechen'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text(AppLocalizations.of(context)!.productOverwrite),
               ),
             ],
           ),
         );
+        if (overwrite == true) {
+          templates[index] = jsonEncode(itemToSave.toJson());
+          await prefs.setStringList('productTemplates', templates);
+        }
+        return;
       }
-      return;
-    }
-
-    templates.add(jsonEncode(item.toJson()));
-    await prefs.setStringList('productTemplates', templates);
-
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.productSaved)));
+    } else {
+      templates.add(jsonEncode(itemToSave.toJson()));
+      await prefs.setStringList('productTemplates', templates);
     }
   }
 
@@ -720,16 +763,20 @@ class _ShoppingCartState extends State<ShoppingCart>
         final limit = await showDialog<double>(
           context: context,
           builder: (_) => AlertDialog(
-            title: Text( AppLocalizations.of(context)!.filterSpendingLimit),
+            title: Text(AppLocalizations.of(context)!.filterSpendingLimit),
             content: TextField(
               controller: ctrl,
               keyboardType: TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(labelText:  AppLocalizations.of(context)!.filterLimitLabel),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.filterLimitLabel,
+              ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text( AppLocalizations.of(context)!.clearListDialogCancel),
+                child: Text(
+                  AppLocalizations.of(context)!.clearListDialogCancel,
+                ),
               ),
               TextButton(
                 onPressed: () {
@@ -738,7 +785,7 @@ class _ShoppingCartState extends State<ShoppingCart>
                     double.tryParse(ctrl.text.replaceAll(',', '.')),
                   );
                 },
-                child: Text( AppLocalizations.of(context)!.editProductOk),
+                child: Text(AppLocalizations.of(context)!.editProductOk),
               ),
             ],
           ),
@@ -757,7 +804,6 @@ class _ShoppingCartState extends State<ShoppingCart>
     }
 
     List<Product> _filteredItems = _products.where((it) {
-      // Spending Limit Filter
       if (_activeFilters.contains(ProductFilter.spendingLimit) &&
           _filterSpendingLimit != null) {
         if (it.price * it.quantity > _filterSpendingLimit!) return false;
@@ -795,6 +841,65 @@ class _ShoppingCartState extends State<ShoppingCart>
       body: SafeArea(
         child: Column(
           children: [
+            if (_activeList != null) ...[
+              Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                elevation: 3,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${AppLocalizations.of(context)!.drawerShoppingList} (${storeToDisplayName(_activeList!.store)})',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      ..._activeList!.items.map(
+                        (p) => CheckboxListTile(
+                          value: _checked[p.id] ?? false,
+                          title: Text(
+                            '${p.quantity}x ${p.name}   ${p.price.toStringAsFixed(2)}€',
+                          ),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          onChanged: (v) {
+                            setState(() {
+                              _checked[p.id] = v ?? false;
+                            });
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '✔ ${_checked.values.where((v) => v).length}/${_activeList!.items.length} ${AppLocalizations.of(context)!.doneShoppingList}',
+                              style: TextStyle(
+                                color: Colors.green[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              '${AppLocalizations.of(context)!.sumLabel} ${_activeList!.items.fold<double>(0.0, (sum, it) => sum + it.price * it.quantity).toStringAsFixed(2)}€',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            Divider(),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
@@ -898,26 +1003,10 @@ class _ShoppingCartState extends State<ShoppingCart>
                           key: ValueKey(it.hashCode),
                           direction: DismissDirection.horizontal,
                           background: Container(
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Color(0xFFEA4D5A),
-                                  Color(0xFFD7263D),
-                                  Color(0xFFB71C1C),
-                                ],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ),
-                              borderRadius: BorderRadius.all(
-                                Radius.circular(12),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Color(0x55B71C1C),
-                                  blurRadius: 16,
-                                  offset: Offset(4, 2),
-                                ),
-                              ],
+                            margin: const EdgeInsets.symmetric(vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(18),
                             ),
                             alignment: Alignment.centerLeft,
                             padding: const EdgeInsets.only(left: 24),
@@ -925,14 +1014,14 @@ class _ShoppingCartState extends State<ShoppingCart>
                               children: [
                                 Icon(
                                   Icons.delete_forever_rounded,
-                                  color: Colors.white,
+                                  color: Colors.red,
                                   size: 32,
                                 ),
                                 SizedBox(width: 10),
                                 Text(
                                   AppLocalizations.of(context)!.remove,
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: Colors.red,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 18,
                                   ),
@@ -943,12 +1032,12 @@ class _ShoppingCartState extends State<ShoppingCart>
                           secondaryBackground: Container(
                             decoration: const BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Color(0xFF34d399), Color(0xFF059669)],
+                                colors: [Color(0xa034d399), Color(0x91059669)],
                                 begin: Alignment.centerRight,
                                 end: Alignment.centerLeft,
                               ),
                               borderRadius: BorderRadius.all(
-                                Radius.circular(12),
+                                Radius.circular(18),
                               ),
                             ),
                             alignment: Alignment.centerRight,
@@ -1108,18 +1197,10 @@ class _ShoppingCartState extends State<ShoppingCart>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                AppLocalizations.of(context)!.sumLabel,
-                style: Theme.of(context).textTheme.titleLarge,
+                '${AppLocalizations.of(context)!.drawerShoppingCart}: ${_total.toStringAsFixed(2)}€',
               ),
               Text(
-                '${_total.toStringAsFixed(2)}€',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: limitActive
-                      ? (_total > _filterSpendingLimit!
-                            ? Colors.red
-                            : Colors.green)
-                      : null,
-                ),
+                '${AppLocalizations.of(context)!.total}: ${(_total + _checkedTotal).toStringAsFixed(2)}€',
               ),
             ],
           ),

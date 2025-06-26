@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:price_snap/screens/shopping_cart.dart';
+import 'package:price_snap/screens/shopping_cart_screen.dart';
 import 'package:price_snap/screens/settings_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 

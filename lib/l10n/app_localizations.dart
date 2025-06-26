@@ -164,6 +164,12 @@ abstract class AppLocalizations {
   /// **'Store:'**
   String get storeLabel;
 
+  /// No description provided for @storeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Store'**
+  String get storeTitle;
+
   /// No description provided for @clearList.
   ///
   /// In en, this message translates to:
@@ -241,6 +247,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Apply'**
   String get filterApply;
+
+  /// No description provided for @productExistsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Product already exists'**
+  String get productExistsTitle;
+
+  /// No description provided for @productExistsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you really want to overwrite the saved product?'**
+  String get productExistsDescription;
+
+  /// No description provided for @productOverwrite.
+  ///
+  /// In en, this message translates to:
+  /// **'Overwrite'**
+  String get productOverwrite;
+
+  /// No description provided for @productOverwritten.
+  ///
+  /// In en, this message translates to:
+  /// **'Product overwritten.'**
+  String get productOverwritten;
 
   /// No description provided for @noItems.
   ///
@@ -325,6 +355,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save Product'**
   String get saveProduct;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
 
   /// No description provided for @productSaved.
   ///
@@ -445,6 +481,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dark'**
   String get darkMode;
+
+  /// No description provided for @activeShoppingList.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get activeShoppingList;
+
+  /// No description provided for @inactiveShoppingList.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive'**
+  String get inactiveShoppingList;
+
+  /// No description provided for @doneShoppingList.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get doneShoppingList;
+
+  /// No description provided for @amount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get amount;
+
+  /// No description provided for @noShoppingListsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No shopping lists yet!'**
+  String get noShoppingListsYet;
+
+  /// No description provided for @noProductsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No products yet!'**
+  String get noProductsYet;
+
+  /// No description provided for @products.
+  ///
+  /// In en, this message translates to:
+  /// **'Products'**
+  String get products;
+
+  /// No description provided for @changeStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Status'**
+  String get changeStatus;
+
+  /// No description provided for @newShoppingList.
+  ///
+  /// In en, this message translates to:
+  /// **'New Shopping List'**
+  String get newShoppingList;
+
+  /// No description provided for @editShoppingList.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Shopping List'**
+  String get editShoppingList;
+
+  /// No description provided for @nameOfShoppingList.
+  ///
+  /// In en, this message translates to:
+  /// **'Name of Shopping List'**
+  String get nameOfShoppingList;
+
+  /// No description provided for @selectTemplateProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Template'**
+  String get selectTemplateProduct;
+
+  /// No description provided for @total.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get total;
 }
 
 class _AppLocalizationsDelegate

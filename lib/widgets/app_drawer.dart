@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:price_snap/models/shopping_list.dart';
 import 'package:price_snap/screens/settings_screen.dart';
+import 'package:price_snap/screens/shopping_list_screen.dart';
 import '../l10n/app_localizations.dart';
 import '../screens/saved_products_screen.dart';
 import '../screens/saved_receipt_screen.dart';
@@ -71,7 +73,13 @@ class AppDrawer extends StatelessWidget {
                   context,
                   icon: Icons.receipt_long,
                   title: AppLocalizations.of(context)!.drawerShoppingList,
-                  onTap: () => Navigator.pop(context),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ShoppingListsScreen(),),
+                    );
+                  }
                 ),
                 const Divider(height: 32, indent: 16, endIndent: 16),
                 Padding(

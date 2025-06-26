@@ -1,6 +1,5 @@
 {
   "appTitle": "PriceSnap",
-
   "drawerShoppingCart": "Einkaufswagen",
   "drawerShoppingList": "Einkaufsliste",
   "drawerSavedData": "Gespeicherte Daten",
@@ -10,8 +9,8 @@
   "drawerSettings": "Einstellungen",
   "drawerAbout": "Über PriceSnap",
   "drawerVersion": "Version {version}",
-
   "storeLabel": "Markt:",
+  "storeTitle": "Markt",
   "clearList": "Liste leeren:",
   "clearListDialogTitle": "Alle Artikel entfernen?",
   "clearListDialogContent": "Willst du wirklich alle Artikel aus der Liste entfernen?",
@@ -25,10 +24,12 @@
   "filterSortCheapest": "Sortieren: Günstigste",
   "filterSortNone": "Sortieren: Keine",
   "filterApply": "Anwenden",
-
+  "productExistsTitle": "Produkt existiert schon",
+  "productExistsDescription": "Möchtest du das gespeicherte Produkt wirklich überschreiben?",
+  "productOverwrite": "Überschreiben",
+  "productOverwritten": "Produkt überschrieben.",
   "noItems": "Keine Artikel. Scanne ein Preisschild.",
   "sumLabel": "Summe:",
-
   "editProductTitle": "Produkt bearbeiten",
   "editProductName": "Name",
   "editProductPrice": "Preis (€)",
@@ -39,32 +40,40 @@
   "selectPhotoFromGallery": "Foto aus Galerie auswählen",
   "alreadyExists": "Produkt existiert bereits!",
   "alreadyExistsDescription": "Das Produkt existiert bereits in deinen Vorlagen.",
-
   "remove": "Entfernen",
   "saveProduct": "Produkt speichern",
+  "save": "Speichern",
   "productSaved": "Produkt gespeichert!",
   "noSavedProducts": "Keine gespeicherten Produkte gefunden!",
-
   "saveReceiptTitle": "Kassenbon speichern",
   "saveReceiptNameLabel": "Kassenbon speichern",
   "saveReceiptSave": "Speichern",
   "saveReceiptCancel": "Abbrechen",
   "receiptSaved": "Kassenbon gespeichert!",
-
   "selectSavedProduct": "Gespeichertes Produkt auswählen",
-
   "addProduct": "Produkt hinzufügen",
   "scanProduct": "Produkt scannen",
   "addFromSaved": "Aus gespeicherten Produkten",
   "scanProductSign": "Preisschild scannen",
-
   "quantity": "Menge",
   "saved": "Gespeichert",
   "cheapest": "Günstigste",
   "mostExpensive": "Teuerste",
-
   "language": "Sprache",
   "theme": "Theme",
   "lightMode": "Hell",
-  "darkMode": "Dunkel"
+  "darkMode": "Dunkel",
+  "activeShoppingList": "Aktiv",
+  "inactiveShoppingList": "Inaktiv",
+  "doneShoppingList": "Fertig",
+  "amount": "Menge",
+  "noShoppingListsYet": "Noch keine Einkaufslisten vorhanden!",
+  "noProductsYet": "Noch keine Produkte!",
+  "products": "Produkte",
+  "changeStatus": "Status ändern",
+  "newShoppingList": "Neue Einkaufsliste",
+  "editShoppingList": "Einkaufsliste bearbeiten",
+  "nameOfShoppingList": "Name der Einkaufsliste",
+  "selectTemplateProduct": "Vorlage auswählen",
+  "total": "Gesamt"
 }
