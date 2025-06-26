@@ -5,6 +5,7 @@ import 'package:price_snap/screens/shopping_list_screen.dart';
 import '../l10n/app_localizations.dart';
 import '../screens/saved_products_screen.dart';
 import '../screens/saved_receipt_screen.dart';
+import '../screens/shopping_cart_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   final ThemeMode themeMode;
@@ -67,7 +68,21 @@ class AppDrawer extends StatelessWidget {
                   context,
                   icon: Icons.shopping_cart_outlined,
                   title: AppLocalizations.of(context)!.drawerShoppingCart,
-                  onTap: () => Navigator.pop(context),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ShoppingCart(
+                          onOpenSettings: onOpenSettings,
+                          locale: locale,
+                          onLocaleChanged: onLocaleChanged,
+                          themeMode: themeMode,
+                          onThemeChanged: onThemeChanged,
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 _buildTile(
                   context,

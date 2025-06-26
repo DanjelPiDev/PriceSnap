@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../l10n/app_localizations.dart';
 import '../models/product.dart';
+import '../services/shopping_list_sync.dart';
 import '../storage/shopping_list_storage.dart';
 import '../utils/store_utils.dart';
 import '../models/shopping_list.dart';
@@ -105,6 +106,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
 
     await saveSingleShoppingList(newList);
 
+    ShoppingListSync.needsRefresh = true;
     Navigator.pop(context, newList);
   }
 

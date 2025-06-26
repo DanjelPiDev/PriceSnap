@@ -75,5 +75,6 @@
   "editShoppingList": "Einkaufsliste bearbeiten",
   "nameOfShoppingList": "Name der Einkaufsliste",
   "selectTemplateProduct": "Vorlage auswählen",
-  "total": "Gesamt"
+  "total": "Gesamt",
+  "more": "Mehr"
 }

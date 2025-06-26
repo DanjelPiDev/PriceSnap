@@ -5,12 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:price_snap/screens/shopping_list_detail_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/product.dart';
 import '../models/receipt.dart';
 import '../models/shopping_list.dart';
+import '../services/shopping_list_sync.dart';
 import '../storage/shopping_list_storage.dart';
 import '../widgets/app_drawer.dart';
 import '../utils/store_utils.dart';
@@ -39,7 +41,10 @@ class ShoppingCart extends StatefulWidget {
 }
 
 class _ShoppingCartState extends State<ShoppingCart>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, RouteAware {
+  // Route observer to track navigation changes (If the user changes the shopping list etc.)
+  RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
+
   late final AnimationController _ctrl;
   late final Animation<double> _pulse;
 
@@ -57,6 +62,7 @@ class _ShoppingCartState extends State<ShoppingCart>
   ];
 
   Store _selectedStore = Store.none;
+  bool _shoppingListExpanded = false;
 
   ShoppingList? _activeList;
   Map<String, bool> _checked = {};
@@ -92,7 +98,23 @@ class _ShoppingCartState extends State<ShoppingCart>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (ShoppingListSync.needsRefresh) {
+      ShoppingListSync.needsRefresh = false;
+      _loadActiveList();
+    }
+    routeObserver.subscribe(this, ModalRoute.of(context) as PageRoute);
+  }
+
+  @override
+  void didPopNext() {
+    _loadActiveList();
+  }
+
+  @override
   void dispose() {
+    routeObserver.unsubscribe(this);
     _ctrl.dispose();
     _limitController.dispose();
     _barcodeScanner.close();
@@ -681,6 +703,19 @@ class _ShoppingCartState extends State<ShoppingCart>
     );
   }
 
+  Future<void> _editActiveShoppingList() async {
+    if (_activeList == null) return;
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ShoppingListDetailScreen(list: _activeList!),
+      ),
+    );
+    if (result is ShoppingList) {
+      await _loadActiveList();
+    }
+  }
+
   double get _checkedTotal {
     if (_activeList == null) return 0.0;
     double sum = 0.0;
@@ -853,28 +888,91 @@ class _ShoppingCartState extends State<ShoppingCart>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '${AppLocalizations.of(context)!.drawerShoppingList} (${storeToDisplayName(_activeList!.store)})',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${AppLocalizations.of(context)!.drawerShoppingList} (${storeToDisplayName(_activeList!.store)})',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            tooltip: AppLocalizations.of(context)!.editProductTitle,
+                            onPressed: _editActiveShoppingList,
+                            splashRadius: 22,
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              _shoppingListExpanded ? Icons.expand_less : Icons.expand_more,
+                            ),
+                            tooltip: _shoppingListExpanded
+                                ? AppLocalizations.of(context)!.editProductCancel
+                                : AppLocalizations.of(context)!.more,
+                            onPressed: () {
+                              setState(() {
+                                _shoppingListExpanded = !_shoppingListExpanded;
+                              });
+                            },
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 6),
-                      ..._activeList!.items.map(
-                        (p) => CheckboxListTile(
-                          value: _checked[p.id] ?? false,
-                          title: Text(
-                            '${p.quantity}x ${p.name}   ${p.price.toStringAsFixed(2)}€',
+                      _shoppingListExpanded
+                          ? SizedBox(
+                        height: 260,
+                        child: Scrollbar(
+                          child: ListView(
+                            children: _activeList!.items.map(
+                                  (p) => CheckboxListTile(
+                                value: _checked[p.id] ?? false,
+                                title: Text(
+                                  '${p.quantity}x ${p.name}   ${p.price.toStringAsFixed(2)}€',
+                                ),
+                                controlAffinity: ListTileControlAffinity.leading,
+                                onChanged: (v) {
+                                  setState(() {
+                                    _checked[p.id] = v ?? false;
+                                  });
+                                },
+                              ),
+                            ).toList(),
                           ),
-                          controlAffinity: ListTileControlAffinity.leading,
-                          onChanged: (v) {
-                            setState(() {
-                              _checked[p.id] = v ?? false;
-                            });
+                        ),
+                      )
+                          : _activeList!.items.isEmpty
+                          ? Text(AppLocalizations.of(context)!.noProductsYet)
+                          : SizedBox(
+                        height: 72 * (_activeList!.items.length > 3 ? 3 : _activeList!.items.length).toDouble(),
+                        child: ListView.builder(
+                          itemCount: _activeList!.items.length > 3 ? 3 : _activeList!.items.length,
+                          itemBuilder: (ctx, i) {
+                            final p = _activeList!.items[i];
+                            return CheckboxListTile(
+                              value: _checked[p.id] ?? false,
+                              title: Text(
+                                '${p.quantity}x ${p.name}   ${p.price.toStringAsFixed(2)}€',
+                              ),
+                              controlAffinity: ListTileControlAffinity.leading,
+                              onChanged: (v) {
+                                setState(() {
+                                  _checked[p.id] = v ?? false;
+                                });
+                              },
+                            );
                           },
                         ),
                       ),
+                      if (!_shoppingListExpanded && (_activeList!.items.length > 3))
+                        Center(
+                          child: Text(
+                            '(${AppLocalizations.of(context)!.more}...)',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          ),
+                        ),
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),
                         child: Row(

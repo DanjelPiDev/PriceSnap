@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:price_snap/l10n/app_localizations_de.dart';
 import '../l10n/app_localizations.dart';
+import '../services/shopping_list_sync.dart';
 import '../storage/shopping_list_storage.dart';
 import '../models/shopping_list.dart';
 import 'shopping_list_detail_screen.dart';
@@ -40,6 +41,7 @@ class _ShoppingListsScreenState extends State<ShoppingListsScreen> {
       setState(() => _lists.add(result));
       await _save();
     }
+    ShoppingListSync.needsRefresh = true;
   }
 
   void _editList(int idx) async {
@@ -51,12 +53,14 @@ class _ShoppingListsScreenState extends State<ShoppingListsScreen> {
       setState(() => _lists[idx] = result);
       await _save();
     }
+    ShoppingListSync.needsRefresh = true;
   }
 
   void _deleteList(int idx) async {
     _lists.removeAt(idx);
     setState(() {});
     await _save();
+    ShoppingListSync.needsRefresh = true;
   }
 
   IconData _storeIcon(String storeName) {
@@ -99,6 +103,7 @@ class _ShoppingListsScreenState extends State<ShoppingListsScreen> {
       }
     });
     await _save();
+    ShoppingListSync.needsRefresh = true;
   }
 
   String _statusText(ShoppingListStatus s) {

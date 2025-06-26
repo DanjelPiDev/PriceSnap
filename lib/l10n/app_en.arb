@@ -75,5 +75,6 @@
   "editShoppingList": "Edit Shopping List",
   "nameOfShoppingList": "Name of Shopping List",
   "selectTemplateProduct": "Select Template",
-  "total": "Total"
+  "total": "Total",
+  "more": "More"
 }
