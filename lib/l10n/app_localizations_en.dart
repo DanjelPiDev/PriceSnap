@@ -252,4 +252,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get name => 'Name';
+
+  @override
+  String get discount => 'Discount';
+
+  @override
+  String get savedProductsTemplates => 'Saved Products Templates';
 }

@@ -81,4 +81,24 @@ class ShoppingList {
         ? DateTime.parse(json['completedAt'])
         : null,
   );
+
+  ShoppingList copyWith({
+    String? id,
+    String? name,
+    Store? store,
+    List<Product>? items,
+    ShoppingListStatus? status,
+    DateTime? created,
+    DateTime? completedAt,
+  }) {
+    return ShoppingList(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      store: store ?? this.store,
+      items: items ?? List<Product>.from(this.items),
+      status: status ?? this.status,
+      created: created ?? this.created,
+      completedAt: completedAt ?? this.completedAt,
+    );
+  }
 }

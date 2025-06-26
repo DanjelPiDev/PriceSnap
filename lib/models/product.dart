@@ -11,6 +11,7 @@ class Product {
   double? unitPrice;
   String? imageUrl;
   Store store;
+  bool discount = false;
 
   Product({
     String? id,
@@ -20,6 +21,7 @@ class Product {
     this.unitPrice,
     this.imageUrl,
     required this.store,
+    this.discount = false,
   }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toJson() => {
@@ -30,6 +32,7 @@ class Product {
     'unitPrice': unitPrice,
     'imageUrl': imageUrl,
     'store': store != null ? store.toString().split('.').last : null,
+    'discount': discount,
   };
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
@@ -43,6 +46,7 @@ class Product {
       (s) => s.toString() == 'Store.${json['store']}',
       orElse: () => Store.none,
     ),
+    discount: json['discount'] ?? false,
   );
 
   Product copyWith({
@@ -53,6 +57,7 @@ class Product {
     double? unitPrice,
     String? imageUrl,
     Store? store,
+    bool? discount,
   }) {
     return Product(
       id: id ?? this.id,
@@ -62,6 +67,7 @@ class Product {
       unitPrice: unitPrice ?? this.unitPrice,
       imageUrl: imageUrl ?? this.imageUrl,
       store: store ?? this.store,
+      discount: discount ?? this.discount,
     );
   }
 }

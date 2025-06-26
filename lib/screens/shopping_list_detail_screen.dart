@@ -154,6 +154,9 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
               ),
               ..._items.map((it) => Card(
                 child: ListTile(
+                  leading: it.discount
+                      ? Icon(Icons.local_offer, color: Colors.orangeAccent)
+                      : null,
                   title: Text(it.name),
                   subtitle: Text('${it.price.toStringAsFixed(2)} € • ${AppLocalizations.of(context)!.amount}: ${it.quantity}'),
                   trailing: Row(

@@ -252,4 +252,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get name => 'Name';
+
+  @override
+  String get discount => 'Rabatt';
+
+  @override
+  String get savedProductsTemplates => 'Gespeicherte Produktvorlagen';
 }

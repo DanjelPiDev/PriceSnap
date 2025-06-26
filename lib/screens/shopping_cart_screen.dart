@@ -14,6 +14,7 @@ import '../models/receipt.dart';
 import '../models/shopping_list.dart';
 import '../services/shopping_list_sync.dart';
 import '../storage/shopping_list_storage.dart';
+import '../utils/update_data.dart';
 import '../widgets/app_drawer.dart';
 import '../utils/store_utils.dart';
 import 'camera_ocr_screen.dart';
@@ -307,6 +308,8 @@ class _ShoppingCartState extends State<ShoppingCart>
       final prefs = await SharedPreferences.getInstance();
       final updated = _products.map((e) => jsonEncode(e.toJson())).toList();
       await prefs.setStringList('productTemplates', updated);
+      await updateProductEverywhere(_products[index]);
+      await _loadActiveList();
     }
   }
 
@@ -953,8 +956,39 @@ class _ShoppingCartState extends State<ShoppingCart>
                             final p = _activeList!.items[i];
                             return CheckboxListTile(
                               value: _checked[p.id] ?? false,
-                              title: Text(
-                                '${p.quantity}x ${p.name}   ${p.price.toStringAsFixed(2)}€',
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      '${p.quantity}x ${p.name}   ${p.price.toStringAsFixed(2)}€',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (p.discount == true)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 6.0),
+                                      child: Chip(
+                                        backgroundColor: Colors.orange.withOpacity(0.13),
+                                        label: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.percent, size: 15, color: Colors.orange),
+                                            SizedBox(width: 2),
+                                            Text(
+                                              AppLocalizations.of(context)?.discount ?? "Angebot",
+                                              style: TextStyle(
+                                                color: Colors.orange,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        labelPadding: const EdgeInsets.symmetric(horizontal: 5),
+                                        padding: EdgeInsets.zero,
+                                      ),
+                                    ),
+                                ],
                               ),
                               controlAffinity: ListTileControlAffinity.leading,
                               onChanged: (v) {
@@ -1259,6 +1293,30 @@ class _ShoppingCartState extends State<ShoppingCart>
                                       visualDensity: VisualDensity.compact,
                                       padding: EdgeInsets.zero,
                                     ),
+                                    if (it.discount)
+                                      Padding(
+                                        padding: const EdgeInsets.only(left: 8.0),
+                                        child: Chip(
+                                          backgroundColor: Colors.orange.withOpacity(0.13),
+                                          label: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.percent, size: 15, color: Colors.orange),
+                                              SizedBox(width: 2),
+                                              Text(
+                                                AppLocalizations.of(context)!.discount,
+                                                style: TextStyle(
+                                                  color: Colors.orange,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          labelPadding: const EdgeInsets.symmetric(horizontal: 5),
+                                          padding: EdgeInsets.zero,
+                                        ),
+                                      ),
                                   ],
                                 ),
                               ),

@@ -577,6 +577,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Name'**
   String get name;
+
+  /// No description provided for @discount.
+  ///
+  /// In en, this message translates to:
+  /// **'Discount'**
+  String get discount;
+
+  /// No description provided for @savedProductsTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved Products Templates'**
+  String get savedProductsTemplates;
 }
 
 class _AppLocalizationsDelegate

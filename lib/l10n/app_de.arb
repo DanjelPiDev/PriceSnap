@@ -78,5 +78,7 @@
   "total": "Gesamt",
   "more": "Mehr",
   "price": "Preis",
-  "name": "Name"
+  "name": "Name",
+  "discount": "Rabatt",
+  "savedProductsTemplates": "Gespeicherte Produktvorlagen"
 }
