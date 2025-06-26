@@ -4,7 +4,7 @@
 If you've ever stood in a REWE or Lidl aisle squinting at a red price tag wondering *"Is this actually a deal?"*, this one's for you.
 
 A small Flutter/Dart project to learn the framework and build something practical:
-A price scanner that extracts product names and prices straight from a photo of a store label. Because saying *“I built an OCR AI tool”* sounds cooler than *“I took a photo of my receipt.”*
+A price scanner that extracts product names and prices straight from a photo of a store label.
 
 <div align="center">
     <img src="images/Screenshot_20250625_194153.jpg" alt="Screenshot of PriceSnap" width="150">
