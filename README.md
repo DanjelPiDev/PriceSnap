@@ -1,5 +1,9 @@
 # PriceSnap
 
+<p align="center">
+  <img src="assets/icon/app_icon.png" alt="PriceSnap App Icon" width="128"/>
+</p>
+
 **Only Germans will get this.**
 If you've ever stood in a REWE or Lidl aisle squinting at a red price tag wondering *"Is this actually a deal?"*, this one's for you.
 
