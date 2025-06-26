@@ -76,5 +76,7 @@
   "nameOfShoppingList": "Name der Einkaufsliste",
   "selectTemplateProduct": "Vorlage auswählen",
   "total": "Gesamt",
-  "more": "Mehr"
+  "more": "Mehr",
+  "price": "Preis",
+  "name": "Name"
 }

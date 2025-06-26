@@ -40,19 +40,13 @@ class AppDrawer extends StatelessWidget {
             ),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Colors.white70,
-                  child: Icon(Icons.person, size: 32, color: Colors.blue.shade700),
-                ),
-                const SizedBox(width: 16),
                 Expanded(
                   child: Text(
-                    'PriceSnap',
+                    AppLocalizations.of(context)!.appTitle,
                     style: Theme.of(context)
                         .textTheme
                         .titleLarge
-                        ?.copyWith(color: Colors.white),
+                        ?.copyWith(color: Colors.black),
                   ),
                 ),
               ],

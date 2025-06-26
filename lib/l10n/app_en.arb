@@ -76,5 +76,7 @@
   "nameOfShoppingList": "Name of Shopping List",
   "selectTemplateProduct": "Select Template",
   "total": "Total",
-  "more": "More"
+  "more": "More",
+  "price": "Price",
+  "name": "Name"
 }

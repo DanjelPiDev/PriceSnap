@@ -54,10 +54,12 @@ class _SavedListScreenState extends State<SavedListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context)!.drawerSavedReceipts)),
-      body: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+      body: _receipts.isEmpty
+          ? Center(child: Text(AppLocalizations.of(context)!.noShoppingListsYet))
+          : ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
         itemCount: _receipts.length,
-        itemBuilder: (ctx, i) {
+        itemBuilder: (_, i) {
           final rec = _receipts[i];
           final name = rec.name;
           final items = rec.items;
@@ -70,16 +72,39 @@ class _SavedListScreenState extends State<SavedListScreen> {
               ? DateFormat.yMMMd('de').add_Hm().format(date)
               : '-';
 
+          IconData _storeIcon(String? storeName) {
+            switch ((storeName ?? '').toLowerCase()) {
+              case 'lidl': return Icons.shopping_basket;
+              case 'rewe': return Icons.store;
+              case 'aldi': return Icons.shopping_cart;
+              case 'edeka': return Icons.local_grocery_store;
+              case 'netto': return Icons.local_mall;
+              case 'penny': return Icons.storefront;
+              default: return Icons.shopping_bag;
+            }
+          }
+
           return Dismissible(
             key: ValueKey(name + i.toString()),
-            direction: DismissDirection.horizontal,
-            background: Container(color: Colors.red, alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.only(left: 20),
-              child: const Icon(Icons.delete, color: Colors.white),
-            ),
-            secondaryBackground: Container(color: Colors.red, alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: 20),
-              child: const Icon(Icons.delete, color: Colors.white),
+            direction: DismissDirection.startToEnd,
+            background: Container(
+              margin: const EdgeInsets.symmetric(vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.only(left: 24),
+              child: Row(
+                children: [
+                  Icon(Icons.delete_forever_rounded, color: Colors.red, size: 32),
+                  SizedBox(width: 10),
+                  Text(
+                    AppLocalizations.of(context)!.remove,
+                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                ],
+              ),
             ),
             onDismissed: (_) async {
               setState(() {
@@ -89,102 +114,131 @@ class _SavedListScreenState extends State<SavedListScreen> {
               await _saveReceipts();
               await _saveFavorites();
             },
-            child: Card(
-              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 2,
-              color: isFav ? Colors.yellow.shade50 : null,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+              decoration: BoxDecoration(
+                color: isFav
+                    ? Colors.yellow.shade50
+                    : Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ListTile(
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => ReceiptDetailScreen(name: name, items: items),
+                      builder: (_) => ReceiptDetailScreen(
+                        name: name,
+                        items: items,
+                      ),
                     ),
                   );
                 },
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                leading: CircleAvatar(
+                  radius: 22,
+                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                  child: Icon(
+                    _storeIcon(rec.store?.name),
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 26,
+                  ),
+                ),
+                title: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        name,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        isFav ? Icons.star : Icons.star_border,
+                        color: isFav ? Colors.orange : Colors.grey,
+                        size: 24,
+                      ),
+                      tooltip: 'Favorit',
+                      onPressed: () async {
+                        setState(() {
+                          if (isFav) {
+                            _favorites.remove(name);
+                          } else {
+                            _favorites.add(name);
+                          }
+                        });
+                        await _saveFavorites();
+                      },
+                    ),
+                  ],
+                ),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 2.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      IconButton(
-                        icon: Icon(
-                          isFav ? Icons.star : Icons.star_border,
-                          color: isFav ? Colors.orange : Colors.grey,
-                        ),
-                        onPressed: () async {
-                          setState(() {
-                            if (isFav) {
-                              _favorites.remove(name);
-                            } else {
-                              _favorites.add(name);
-                            }
-                          });
-                          await _saveFavorites();
-                        },
+                      Row(
+                        children: [
+                          Icon(Icons.calendar_today, size: 15, color: Colors.grey[600]),
+                          const SizedBox(width: 3),
+                          Text(fmtDate, style: TextStyle(color: Colors.grey[700], fontSize: 14)),
+                          const SizedBox(width: 8),
+                        ],
                       ),
-
-                      const SizedBox(width: 8),
-
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    name,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  fmtDate,
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.list_alt, size: 15, color: Colors.grey[600]),
+                          const SizedBox(width: 3),
+                          Text('${items.length} ${AppLocalizations.of(context)!.products}', style: TextStyle(color: Colors.grey[700], fontSize: 14)),
+                          const SizedBox(width: 3),
+                          Chip(
+                            backgroundColor: Colors.blue.withOpacity(0.13),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            label: Text(
+                              '${total.toStringAsFixed(2)}€ / ${hasLimit ? '${rec.limit.toStringAsFixed(2)}€' : '-'}',
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                            labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+                            padding: EdgeInsets.zero,
+                          ),
+                          if (rec.store != null && rec.store != Store.none)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 8.0),
+                              child: Chip(
+                                backgroundColor: Colors.green.withOpacity(0.13),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                label: Text(
+                                  storeToDisplayName(rec.store),
                                   style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
+                                    color: Colors.green[800],
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
                                   ),
                                 ),
-                              ],
+                                labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+                                padding: EdgeInsets.zero,
+                              ),
                             ),
-
-                            const SizedBox(height: 8),
-
-                            Wrap(
-                              spacing: 6,
-                              runSpacing: 4,
-                              children: [
-                                Chip(
-                                  label: Text('${items.length} Items'),
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                                Chip(
-                                  label: Text(
-                                    '${total.toStringAsFixed(2)}€ / ${hasLimit ? '${rec.limit.toStringAsFixed(2)}€' : '-'}',
-                                  ),
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                                if (rec.store != null && rec.store != Store.none)
-                                  Chip(
-                                    label: Text(storeToDisplayName(rec.store)),
-                                    visualDensity: VisualDensity.compact,
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ),
+                        ],
                       ),
-
-                      const Icon(Icons.chevron_right, color: Colors.grey),
                     ],
                   ),
                 ),
+                trailing: const Icon(Icons.chevron_right, color: Colors.grey),
               ),
             ),
           );

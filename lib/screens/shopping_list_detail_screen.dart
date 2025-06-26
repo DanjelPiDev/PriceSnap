@@ -197,18 +197,22 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  AppLocalizations.of(context)!.sumLabel,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                Text(
-                  '${_total.toStringAsFixed(2)}€',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ],
+            Container(
+              color: Colors.grey.shade200,
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    AppLocalizations.of(context)!.sumLabel,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  Text(
+                    '${_total.toStringAsFixed(2)}€',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
