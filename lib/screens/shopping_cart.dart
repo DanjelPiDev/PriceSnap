@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -12,6 +11,7 @@ import '../l10n/app_localizations.dart';
 import '../models/product.dart';
 import '../models/receipt.dart';
 import '../widgets/app_drawer.dart';
+import '../utils/store_utils.dart';
 import 'camera_ocr_screen.dart';
 
 enum ProductFilter { spendingLimit, mostExpensive, cheapest }
@@ -44,15 +44,16 @@ class _ShoppingCartState extends State<ShoppingCart>
   final List<Product> _products = [];
   final _prefsKey = 'savedReceipts';
 
-  final List<String> _stores = [
-    'Lidl',
-    'Aldi',
-    'Rewe',
-    'Edeka',
-    'Netto',
-    'Penny',
+  final List<Store> _stores = [
+    Store.none,
+    Store.lidl,
+    Store.aldi,
+    Store.rewe,
+    Store.edeka,
+    Store.netto,
+    Store.penny,
   ];
-  String _selectedStore = 'Rewe';
+  Store _selectedStore = Store.none;
 
   // Just placeholders...
   static const _storeApi = {
@@ -160,7 +161,7 @@ class _ShoppingCartState extends State<ShoppingCart>
     if (barcodes.isEmpty) return;
 
     final code = barcodes.first.rawValue ?? '';
-    final apiUrl = _storeApi[_selectedStore]!;
+    final apiUrl = _storeApi[storeToJsonString(_selectedStore)]!;
     try {
       final resp = await http.get(Uri.parse('$apiUrl?barcode=$code'));
       if (resp.statusCode == 200) {
@@ -188,10 +189,13 @@ class _ShoppingCartState extends State<ShoppingCart>
     final current = _products[index];
 
     final nameController = TextEditingController(text: current.name);
-    final priceController = TextEditingController(text: current.price.toStringAsFixed(2));
-    String selectedStore = current.store;
-    if (!_stores.where((s) => s != 'None').contains(selectedStore)) {
-      selectedStore = _stores.firstWhere((s) => s != 'None');
+    final priceController = TextEditingController(
+      text: current.price.toStringAsFixed(2),
+    );
+
+    Store selectedStore = current.store ?? Store.rewe;
+    if (!_stores.contains(selectedStore)) {
+      selectedStore = _stores.first;
     }
 
     final result = await showDialog<Map<String, dynamic>>(
@@ -203,21 +207,33 @@ class _ShoppingCartState extends State<ShoppingCart>
           children: [
             TextField(
               controller: nameController,
-              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.editProductName),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.editProductName,
+              ),
               autofocus: true,
             ),
             const SizedBox(height: 12),
             TextField(
               controller: priceController,
               keyboardType: TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.editProductPrice),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.editProductPrice,
+              ),
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
+            DropdownButtonFormField<Store>(
               value: selectedStore,
-              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.editProductStore),
-              items: _stores.where((s) => s != 'None').map((s) =>
-                  DropdownMenuItem(value: s, child: Text(s))).toList(),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.editProductStore,
+              ),
+              items: _stores
+                  .map(
+                    (s) => DropdownMenuItem(
+                      value: s,
+                      child: Text(storeToDisplayName(s)),
+                    ),
+                  )
+                  .toList(),
               onChanged: (s) => selectedStore = s!,
             ),
           ],
@@ -231,7 +247,11 @@ class _ShoppingCartState extends State<ShoppingCart>
             onPressed: () {
               Navigator.pop(context, {
                 'name': nameController.text.trim(),
-                'price': double.tryParse(priceController.text.replaceAll(',', '.').trim()) ?? current.price,
+                'price':
+                    double.tryParse(
+                      priceController.text.replaceAll(',', '.').trim(),
+                    ) ??
+                    current.price,
                 'store': selectedStore,
               });
             },
@@ -259,14 +279,14 @@ class _ShoppingCartState extends State<ShoppingCart>
   Future<void> _loadSelectedStore() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString('preferredStore');
-    if (saved != null && _stores.contains(saved)) {
-      setState(() => _selectedStore = saved);
+    if (saved != null) {
+      setState(() => _selectedStore = storeFromString(saved));
     }
   }
 
-  Future<void> _saveSelectedStore(String store) async {
+  Future<void> _saveSelectedStore(Store store) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('preferredStore', store);
+    await prefs.setString('preferredStore', storeToJsonString(store));
   }
 
   Future<void> _saveReceipt() async {
@@ -305,7 +325,9 @@ class _ShoppingCartState extends State<ShoppingCart>
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     onPressed: () => Navigator.pop(context),
-                    child: Text(AppLocalizations.of(context)!.saveReceiptCancel),
+                    child: Text(
+                      AppLocalizations.of(context)!.saveReceiptCancel,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -380,13 +402,17 @@ class _ShoppingCartState extends State<ShoppingCart>
                     final item = Product.fromJson(jsonDecode(templates[i]));
 
                     // Prüfen: Ist schon im Warenkorb?
-                    final cartIndex = _products.indexWhere((p) =>
-                    p.name == item.name &&
-                        p.price == item.price &&
-                        p.store == item.store);
+                    final cartIndex = _products.indexWhere(
+                      (p) =>
+                          p.name == item.name &&
+                          p.price == item.price &&
+                          p.store == item.store,
+                    );
 
                     final alreadyInCart = cartIndex != -1;
-                    final quantity = alreadyInCart ? _products[cartIndex].quantity : 0;
+                    final quantity = alreadyInCart
+                        ? _products[cartIndex].quantity
+                        : 0;
 
                     return GestureDetector(
                       onTap: () {
@@ -394,53 +420,69 @@ class _ShoppingCartState extends State<ShoppingCart>
                           if (alreadyInCart) {
                             _products[cartIndex].quantity++;
                           } else {
-                            _products.add(item.copyWith());
+                            _products.add(item.copyWith(quantity: 1));
                           }
                         });
-                        // Optional: Feedback-Animation
-                        setDialogState(() {}); // Damit Quantity im Dialog sichtbar aktualisiert
+                        setDialogState(() {});
                       },
                       child: Card(
-                        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+                        margin: const EdgeInsets.symmetric(
+                          vertical: 6,
+                          horizontal: 2,
+                        ),
                         elevation: 2,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: ListTile(
-                          leading: item.imageUrl != null && item.imageUrl!.isNotEmpty
+                          leading:
+                              item.imageUrl != null && item.imageUrl!.isNotEmpty
                               ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.file(
-                              File(item.imageUrl!),
-                              width: 40,
-                              height: 40,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Icon(Icons.image, color: Colors.grey),
-                            ),
-                          )
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.file(
+                                    File(item.imageUrl!),
+                                    width: 40,
+                                    height: 40,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) =>
+                                        Icon(Icons.image, color: Colors.grey),
+                                  ),
+                                )
                               : Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.image, size: 24, color: Colors.grey),
-                          ),
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[200],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.image,
+                                    size: 24,
+                                    color: Colors.grey,
+                                  ),
+                                ),
                           title: Text(
                             item.name,
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          subtitle: Text('${item.price.toStringAsFixed(2)}€ • ${item.store}'),
+                          subtitle: Text(
+                            '${item.price.toStringAsFixed(2)}€ • ${item.store}',
+                          ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.add_circle_outline, color: Colors.blueAccent),
+                              const Icon(
+                                Icons.add_circle_outline,
+                                color: Colors.blueAccent,
+                              ),
                               if (quantity > 0)
                                 Padding(
                                   padding: const EdgeInsets.only(left: 8.0),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: Colors.blue.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(12),
@@ -475,8 +517,6 @@ class _ShoppingCartState extends State<ShoppingCart>
     );
   }
 
-
-
   Future<void> _loadReceiptList() async {}
 
   Future<void> _openFilterDialog() async {
@@ -498,7 +538,9 @@ class _ShoppingCartState extends State<ShoppingCart>
                 children: [
                   CheckboxListTile(
                     value: tmpFilters.contains(ProductFilter.spendingLimit),
-                    title: Text(AppLocalizations.of(context)!.filterSpendingLimit),
+                    title: Text(
+                      AppLocalizations.of(context)!.filterSpendingLimit,
+                    ),
                     controlAffinity: ListTileControlAffinity.leading,
                     onChanged: (v) {
                       setState(() {
@@ -515,7 +557,9 @@ class _ShoppingCartState extends State<ShoppingCart>
                             width: 100,
                             child: TextField(
                               decoration: InputDecoration(
-                                labelText: AppLocalizations.of(context)!.filterLimitLabel,
+                                labelText: AppLocalizations.of(
+                                  context,
+                                )!.filterLimitLabel,
                               ),
                               keyboardType: TextInputType.numberWithOptions(
                                 decimal: true,
@@ -542,7 +586,9 @@ class _ShoppingCartState extends State<ShoppingCart>
                         : tmpFilters.contains(ProductFilter.cheapest)
                         ? ProductFilter.cheapest
                         : null,
-                    title: Text(AppLocalizations.of(context)!.filterSortMostExpensive),
+                    title: Text(
+                      AppLocalizations.of(context)!.filterSortMostExpensive,
+                    ),
                     onChanged: (val) {
                       setState(() {
                         tmpFilters.remove(ProductFilter.cheapest);
@@ -557,7 +603,9 @@ class _ShoppingCartState extends State<ShoppingCart>
                         : tmpFilters.contains(ProductFilter.cheapest)
                         ? ProductFilter.cheapest
                         : null,
-                    title: Text(AppLocalizations.of(context)!.filterSortCheapest),
+                    title: Text(
+                      AppLocalizations.of(context)!.filterSortCheapest,
+                    ),
                     onChanged: (val) {
                       setState(() {
                         tmpFilters.remove(ProductFilter.mostExpensive);
@@ -607,7 +655,8 @@ class _ShoppingCartState extends State<ShoppingCart>
 
   Future<void> _saveItemTemplate(Product item) async {
     final prefs = await SharedPreferences.getInstance();
-    final List<String> templates = prefs.getStringList('productTemplates') ?? [];
+    final List<String> templates =
+        prefs.getStringList('productTemplates') ?? [];
 
     final List<Product> savedProducts = templates
         .map((e) => Product.fromJson(jsonDecode(e)))
@@ -621,7 +670,9 @@ class _ShoppingCartState extends State<ShoppingCart>
           context: context,
           builder: (_) => AlertDialog(
             title: Text(AppLocalizations.of(context)!.alreadyExists),
-            content: Text(AppLocalizations.of(context)!.alreadyExistsDescription),
+            content: Text(
+              AppLocalizations.of(context)!.alreadyExistsDescription,
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
@@ -638,12 +689,11 @@ class _ShoppingCartState extends State<ShoppingCart>
     await prefs.setStringList('productTemplates', templates);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Produkt gespeichert!")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.productSaved)));
     }
   }
-
 
   void _openCameraOCRScreen() {
     Navigator.of(context).push(
@@ -670,16 +720,16 @@ class _ShoppingCartState extends State<ShoppingCart>
         final limit = await showDialog<double>(
           context: context,
           builder: (_) => AlertDialog(
-            title: const Text('Set Spending Limit'),
+            title: Text( AppLocalizations.of(context)!.filterSpendingLimit),
             content: TextField(
               controller: ctrl,
               keyboardType: TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Limit (€)'),
+              decoration: InputDecoration(labelText:  AppLocalizations.of(context)!.filterLimitLabel),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
+                child: Text( AppLocalizations.of(context)!.clearListDialogCancel),
               ),
               TextButton(
                 onPressed: () {
@@ -688,7 +738,7 @@ class _ShoppingCartState extends State<ShoppingCart>
                     double.tryParse(ctrl.text.replaceAll(',', '.')),
                   );
                 },
-                child: const Text('OK'),
+                child: Text( AppLocalizations.of(context)!.editProductOk),
               ),
             ],
           ),
@@ -731,7 +781,9 @@ class _ShoppingCartState extends State<ShoppingCart>
     final bool overLimit = limitActive && _total > _filterSpendingLimit!;
 
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.drawerShoppingCart)),
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)!.drawerShoppingCart),
+      ),
       drawer: AppDrawer(
         themeMode: widget.themeMode,
         onThemeChanged: widget.onThemeChanged,
@@ -750,11 +802,14 @@ class _ShoppingCartState extends State<ShoppingCart>
                   Text(AppLocalizations.of(context)!.storeLabel),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: DropdownButton<String>(
+                    child: DropdownButton<Store>(
                       value: _selectedStore,
                       items: _stores
                           .map(
-                            (s) => DropdownMenuItem(value: s, child: Text(s)),
+                            (s) => DropdownMenuItem<Store>(
+                              value: s,
+                              child: Text(storeToDisplayName(s)),
+                            ),
                           )
                           .toList(),
                       onChanged: (s) {
@@ -777,18 +832,32 @@ class _ShoppingCartState extends State<ShoppingCart>
                             final confirm = await showDialog<bool>(
                               context: context,
                               builder: (ctx) => AlertDialog(
-                                title: Text(AppLocalizations.of(context)!.clearListDialogTitle),
+                                title: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.clearListDialogTitle,
+                                ),
                                 content: Text(
-                                  AppLocalizations.of(context)!.clearListDialogContent,
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.clearListDialogContent,
                                 ),
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(ctx, false),
-                                    child: Text(AppLocalizations.of(context)!.clearListDialogCancel),
+                                    child: Text(
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.clearListDialogCancel,
+                                    ),
                                   ),
                                   ElevatedButton(
                                     onPressed: () => Navigator.pop(ctx, true),
-                                    child: Text(AppLocalizations.of(context)!.clearListDialogConfirm),
+                                    child: Text(
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.clearListDialogConfirm,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -839,7 +908,9 @@ class _ShoppingCartState extends State<ShoppingCart>
                                 begin: Alignment.centerLeft,
                                 end: Alignment.centerRight,
                               ),
-                              borderRadius: BorderRadius.all(Radius.circular(12)),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(12),
+                              ),
                               boxShadow: [
                                 BoxShadow(
                                   color: Color(0x55B71C1C),
@@ -852,7 +923,11 @@ class _ShoppingCartState extends State<ShoppingCart>
                             padding: const EdgeInsets.only(left: 24),
                             child: Row(
                               children: [
-                                Icon(Icons.delete_forever_rounded, color: Colors.white, size: 32),
+                                Icon(
+                                  Icons.delete_forever_rounded,
+                                  color: Colors.white,
+                                  size: 32,
+                                ),
                                 SizedBox(width: 10),
                                 Text(
                                   AppLocalizations.of(context)!.remove,
@@ -872,7 +947,9 @@ class _ShoppingCartState extends State<ShoppingCart>
                                 begin: Alignment.centerRight,
                                 end: Alignment.centerLeft,
                               ),
-                              borderRadius: BorderRadius.all(Radius.circular(12)),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(12),
+                              ),
                             ),
                             alignment: Alignment.centerRight,
                             padding: const EdgeInsets.only(right: 24),
@@ -895,10 +972,15 @@ class _ShoppingCartState extends State<ShoppingCart>
                           confirmDismiss: (direction) async {
                             if (direction == DismissDirection.startToEnd) {
                               return true;
-                            } else if (direction == DismissDirection.endToStart) {
+                            } else if (direction ==
+                                DismissDirection.endToStart) {
                               await _saveItemTemplate(it);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(AppLocalizations.of(context)!.productSaved)),
+                                SnackBar(
+                                  content: Text(
+                                    AppLocalizations.of(context)!.productSaved,
+                                  ),
+                                ),
                               );
                               return false;
                             }
@@ -929,24 +1011,32 @@ class _ShoppingCartState extends State<ShoppingCart>
                                 onTap: () => _pickImageForItem(i),
                                 child: _products[i].imageUrl != null
                                     ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.file(
-                                    File(_products[i].imageUrl!),
-                                    width: 40,
-                                    height: 40,
-                                    fit: BoxFit.cover,
-                                  ),
-                                )
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.file(
+                                          File(_products[i].imageUrl!),
+                                          width: 40,
+                                          height: 40,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      )
                                     : Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[200],
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.grey[400]!),
-                                  ),
-                                  child: const Icon(Icons.image, size: 24, color: Colors.grey),
-                                ),
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[200],
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.grey[400]!,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.image,
+                                          size: 24,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
                               ),
                               title: GestureDetector(
                                 onTap: () => _editProduct(it.id),
@@ -1017,7 +1107,10 @@ class _ShoppingCartState extends State<ShoppingCart>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(AppLocalizations.of(context)!.sumLabel, style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                AppLocalizations.of(context)!.sumLabel,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               Text(
                 '${_total.toStringAsFixed(2)}€',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(

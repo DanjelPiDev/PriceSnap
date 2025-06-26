@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/product.dart';
+import '../utils/store_utils.dart';
 
 class SavedProductsScreen extends StatefulWidget {
   const SavedProductsScreen({super.key});
@@ -18,9 +19,9 @@ class _SavedProductsScreenState extends State<SavedProductsScreen> {
   List<Product> _products = [];
   bool _loading = true;
 
-  final List<String> filterStores = ['None', 'REWE', 'Lidl', 'Aldi', 'Edeka', 'Netto', 'Penny'];
-  final List<String> itemStores = ['REWE', 'Lidl', 'Aldi', 'Edeka', 'Netto', 'Penny'];
-  String _selectedFilterStore = 'None';
+  final List<Store> filterStores = [Store.none, Store.rewe, Store.lidl, Store.aldi, Store.edeka, Store.netto, Store.penny];
+  final List<Store> itemStores = [Store.rewe, Store.lidl, Store.aldi, Store.edeka, Store.netto, Store.penny];
+  Store _selectedFilterStore = Store.none;
 
   @override
   void initState() {
@@ -46,7 +47,8 @@ class _SavedProductsScreenState extends State<SavedProductsScreen> {
   void _editItem(int i) async {
     final nameController = TextEditingController(text: _products[i].name);
     final priceController = TextEditingController(text: _products[i].price.toStringAsFixed(2));
-    String selectedStore = _products[i].store;
+
+    Store selectedStore = _products[i].store ?? Store.rewe;
     if (!itemStores.contains(selectedStore)) {
       selectedStore = itemStores.first;
     }
@@ -60,21 +62,21 @@ class _SavedProductsScreenState extends State<SavedProductsScreen> {
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name'),
+              decoration: InputDecoration(labelText: 'Name'),
               autofocus: true,
             ),
             const SizedBox(height: 12),
             TextField(
               controller: priceController,
               keyboardType: TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Price (€)'),
+              decoration: InputDecoration(labelText: 'Price (€)'),
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
+            DropdownButtonFormField<Store>(
               value: selectedStore,
-              decoration: const InputDecoration(labelText: "Store"),
+              decoration: InputDecoration(labelText: "Store"),
               items: itemStores.map((s) =>
-                  DropdownMenuItem(value: s, child: Text(s))).toList(),
+                  DropdownMenuItem(value: s, child: Text(storeToDisplayName(s)))).toList(),
               onChanged: (s) => selectedStore = s!,
             ),
           ],

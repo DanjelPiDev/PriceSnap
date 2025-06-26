@@ -1,8 +1,9 @@
+import '../utils/store_utils.dart';
 import 'product.dart';
 
 class Receipt {
   String name;
-  String store;
+  Store store;
   List<Product> items;
   double limit;
   DateTime date;

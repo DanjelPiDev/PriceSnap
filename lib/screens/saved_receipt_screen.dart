@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:price_snap/screens/receipt_detail_screen.dart';
-import '../models/product.dart';
+import '../l10n/app_localizations.dart';
 import '../models/receipt.dart';
+import '../utils/store_utils.dart';
 
 class SavedListScreen extends StatefulWidget {
   const SavedListScreen({super.key});
@@ -52,7 +53,7 @@ class _SavedListScreenState extends State<SavedListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Saved Receipts')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.drawerSavedReceipts)),
       body: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: _receipts.length,
@@ -172,9 +173,9 @@ class _SavedListScreenState extends State<SavedListScreen> {
                                   ),
                                   visualDensity: VisualDensity.compact,
                                 ),
-                                if (rec.store.isNotEmpty)
+                                if (rec.store != null && rec.store != Store.none)
                                   Chip(
-                                    label: Text(rec.store),
+                                    label: Text(storeToDisplayName(rec.store)),
                                     visualDensity: VisualDensity.compact,
                                   ),
                               ],
