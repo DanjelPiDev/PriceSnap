@@ -786,6 +786,7 @@ class _ShoppingCartState extends State<ShoppingCart>
               _products.add(item);
             });
           },
+          selectedStore: _selectedStore,
         ),
       ),
     );

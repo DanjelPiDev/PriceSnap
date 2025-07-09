@@ -12,8 +12,13 @@ import '../models/product.dart';
 
 class CameraOCRScreen extends StatefulWidget {
   final void Function(Product) onItemDetected;
+  final Store selectedStore;
 
-  const CameraOCRScreen({super.key, required this.onItemDetected});
+  const CameraOCRScreen({
+    super.key,
+    required this.onItemDetected,
+    required this.selectedStore,
+  });
 
   @override
   State<CameraOCRScreen> createState() => _CameraOCRScreenState();
